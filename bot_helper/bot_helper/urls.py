@@ -23,5 +23,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('users/', users.views.UserView.as_view()),
     path('discounts/', parser.views.DiscountsView.as_view()),
-    path('news/', parser.views.NewsView.as_view())
+    path('news/', parser.views.NewsView.as_view()),
+    path('sales/', parser.views.SearchDiscount.as_view())
 ]

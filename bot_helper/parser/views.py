@@ -32,3 +32,18 @@ class DiscountsView(APIView):
             desc = desc.replace("\n", "")
             response.append({"title": title, "desc": desc})
         return Response(response)
+
+
+class SearchDiscount(APIView):
+    def get(self, request, *args, **kwargs):
+        if request.query_params:
+            result = get_sheet_from_gsheets("discounts")[1]
+            category = request.query_params.get('category')
+            campus = request.query_params.get('campus')
+            if campus:
+                result = result[result["campus"] == campus]
+            if category:
+                result = result[result["category"] == category]
+            result = result.drop_duplicates()
+            return Response(result.to_dict(orient='records'))
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
