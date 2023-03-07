@@ -507,3 +507,5 @@ poetry.toml
 
 .idea
 .idea/
+
+.DS_Store
