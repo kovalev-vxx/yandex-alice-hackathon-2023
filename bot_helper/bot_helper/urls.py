@@ -16,10 +16,12 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 
+import parser.views
 import users.views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('users/', users.views.UserView.as_view()),
-    path('get_alice_user_id/', users.views.AliceRequestHandlerView.as_view())
+    path('discounts/', parser.views.DiscountsView.as_view()),
+    path('news/', parser.views.NewsView.as_view())
 ]

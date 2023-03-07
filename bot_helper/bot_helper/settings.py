@@ -27,6 +27,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
+GOOGLE_SHEETS_DB_ID = "1yHe7FYZIWBc36B20eT9cOUwwEdpfWulNjHaxZEGZWxI"
+
 
 # Application definition
 
@@ -45,6 +47,7 @@ INSTALLED_APPS = [
     'djoser',
     'drf_yasg',
     "users",
+    "parser",
 ]
 
 MIDDLEWARE = [
