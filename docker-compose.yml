@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+    backend:
+        container_name: bot_helper
+        build:
+            context: ./bot_helper
+        volumes:
+            - ./bot_helper:/app
+        command: gunicorn --bind 0.0.0.0:8000 wsgi:application
+        ports:
+            - 8000:8000
+        restart: always
