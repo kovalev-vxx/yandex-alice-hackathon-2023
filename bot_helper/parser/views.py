@@ -1,3 +1,4 @@
+import pandas as pd
 from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework import generics
@@ -44,17 +45,31 @@ class SearchDiscount(APIView):
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+def filter_df(df, param, value):
+    if value[0] == "!":
+        value = value[1:]
+        df = df[df[param] != value]
+    else:
+        df = df[df[param] == value]
+    return df
+
 class SpreadsheetFilter(APIView):
     def get(self, request, sheet, *args, **kwargs):
         result = get_sheet_from_gsheets(sheet)[1]
-        for param, value in request.query_params.items():
-            try:
-                if value[0] == "!":
-                    value = value[1:]
-                    result = result[result[param] != value]
-                else:
-                    result = result[result[param] == value]
-            except KeyError:
-                continue
+        if "top" in request.query_params.keys():
+            for param, value in request.query_params.items():
+                try:
+                    if value:
+                        top = filter_df(result, param, value)
+                        result = pd.concat([top, filter_df(result, param, f"!{value}")])
+                except KeyError:
+                    continue
+        else:
+            for param, value in request.query_params.items():
+                try:
+                    if value:
+                        result = filter_df(result, param, value)
+                except KeyError:
+                    continue
         result = result.drop_duplicates()
         return Response(result.to_dict(orient='records'))
