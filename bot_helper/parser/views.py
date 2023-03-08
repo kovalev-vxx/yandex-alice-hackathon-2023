@@ -8,11 +8,6 @@ from bot_helper.utils import get_sheet_from_gsheets
 import requests
 
 
-class NewsView(APIView):
-    def get(self, request, *args, **kwargs):
-        return Response(get_sheet_from_gsheets("discounts")[0])
-
-
 class DiscountsView(APIView):
     def get(self, request, *args, **kwargs):
         page = requests.get("https://student.itmo.ru/ru/discounts/")
@@ -47,3 +42,15 @@ class SearchDiscount(APIView):
             result = result.drop_duplicates()
             return Response(result.to_dict(orient='records'))
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class SpreadsheetFilter(APIView):
+    def get(self, request, sheet, *args, **kwargs):
+        result = get_sheet_from_gsheets(sheet)[1]
+        for param, value in request.query_params.items():
+            try:
+                result = result[result[param] == value]
+            except KeyError:
+                continue
+        result = result.drop_duplicates()
+        return Response(result.to_dict(orient='records'))
