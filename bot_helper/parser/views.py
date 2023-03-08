@@ -49,7 +49,11 @@ class SpreadsheetFilter(APIView):
         result = get_sheet_from_gsheets(sheet)[1]
         for param, value in request.query_params.items():
             try:
-                result = result[result[param] == value]
+                if value[0] == "!":
+                    value = value[1:]
+                    result = result[result[param] != value]
+                else:
+                    result = result[result[param] == value]
             except KeyError:
                 continue
         result = result.drop_duplicates()
