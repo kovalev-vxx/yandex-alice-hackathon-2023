@@ -53,6 +53,7 @@ def filter_df(df, param, value):
         df = df[df[param] == value]
     return df
 
+
 class SpreadsheetFilter(APIView):
     def get(self, request, sheet, *args, **kwargs):
         result = get_sheet_from_gsheets(sheet)[1]
@@ -73,3 +74,8 @@ class SpreadsheetFilter(APIView):
                     continue
         result = result.drop_duplicates()
         return Response(result.to_dict(orient='records'))
+
+
+class LastMessage(APIView):
+    def post(self, request, *args, **kwargs):
+        return Response({"msg": request.data[-2]["text"]})

@@ -24,5 +24,6 @@ urlpatterns = [
     path('users/', users.views.UserView.as_view()),
     path('discounts/', parser.views.DiscountsView.as_view()),
     path('sales/', parser.views.SearchDiscount.as_view()),
-    path('gsheet/<sheet>/', parser.views.SpreadsheetFilter.as_view())
+    path('gsheet/<sheet>/', parser.views.SpreadsheetFilter.as_view()),
+    path('last_msg/', parser.views.LastMessage.as_view())
 ]
