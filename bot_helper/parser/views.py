@@ -5,7 +5,7 @@ from rest_framework import generics
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView, status
 from bs4 import BeautifulSoup
-from bot_helper.utils import get_sheet_from_gsheets
+from bot_helper.utils import get_data_from_xlsx
 import requests
 
 
@@ -33,7 +33,7 @@ class DiscountsView(APIView):
 class SearchDiscount(APIView):
     def get(self, request, *args, **kwargs):
         if request.query_params:
-            result = get_sheet_from_gsheets("discounts")[1]
+            result = get_data_from_xlsx("discounts")
             category = request.query_params.get('category')
             campus = request.query_params.get('campus')
             if campus:
@@ -56,7 +56,7 @@ def filter_df(df, param, value):
 
 class SpreadsheetFilter(APIView):
     def get(self, request, sheet, *args, **kwargs):
-        result = get_sheet_from_gsheets(sheet)[1]
+        result = get_data_from_xlsx(sheet)
         if "top" in request.query_params.keys():
             for param, value in request.query_params.items():
                 try:
