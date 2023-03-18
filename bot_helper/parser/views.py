@@ -1,3 +1,4 @@
+from django.http import HttpResponse
 import pandas as pd
 from django.shortcuts import render
 from rest_framework.response import Response
@@ -5,8 +6,10 @@ from rest_framework import generics
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView, status
 from bs4 import BeautifulSoup
-from bot_helper.utils import get_data_from_xlsx
+from bot_helper.utils import get_data_from_xlsx, load_gsheet
 import requests
+
+
 
 
 class DiscountsView(APIView):
@@ -52,6 +55,11 @@ def filter_df(df, param, value):
     else:
         df = df[df[param] == value]
     return df
+
+class UpdateSpreadSheet(APIView):
+    def get(self, request):
+        load_gsheet()
+        return Response("updated")
 
 
 class SpreadsheetFilter(APIView):

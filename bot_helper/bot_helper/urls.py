@@ -18,6 +18,7 @@ from django.urls import path
 
 import parser.views
 import users.views
+import bot.views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -25,5 +26,7 @@ urlpatterns = [
     path('discounts/', parser.views.DiscountsView.as_view()),
     path('sales/', parser.views.SearchDiscount.as_view()),
     path('gsheet/<sheet>/', parser.views.SpreadsheetFilter.as_view()),
-    path('last_msg/', parser.views.LastMessage.as_view())
+    path('last_msg/', parser.views.LastMessage.as_view()),
+    path('bot/', bot.views.BotHandler.as_view()),
+    path('gsheet/update', parser.views.UpdateSpreadSheet.as_view())
 ]
