@@ -2,7 +2,7 @@ from ..models.AliceEvent import AliceEvent
 
 
 class AliceResponse:
-    def __init__(self, event:AliceEvent, text, tts=None, state=None, repeat=False, intent_hooks=[]) -> None:
+    def __init__(self, event:AliceEvent, text, tts=None, state=None, repeat=False, intent_hooks={}) -> None:
         self.state = {}
         self.text = text
         self.tts = tts if tts is not None else text

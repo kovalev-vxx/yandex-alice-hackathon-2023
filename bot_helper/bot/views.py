@@ -14,20 +14,51 @@ def get_phrase(_object, field):
     tts = _object.get(f"{field}_tts", text)
     return {"text":text, "tts":tts}
 
-        
-        
 def about_campuses(event, *args, **kwargs):
-    return AliceResponse(event, "В ИТМО есть 5 корпусов")
-
-def about_campus(event, campus, field=None, *args, **kwargs):
-    link = f"{HOST}/gsheet/campuses/?campus={campus}&top"
-    campuses = requests.get(link).json()
-    pharse = get_phrase(campuses[0], field="phrase")
-    response = AliceResponse(event, **pharse)
+    text = """
+    Всего у ИТМО есть 5 основных корпусов:\n\n
+    1. Ломоносова\n
+    2. Кронверкский\n
+    3. Биржевая линия\n
+    4. Гривцова\n
+    5. Чайковского\n\n
+    О каком хочешь узнать побольше?
+    """
+    tts = "Всего у ИТМ+О есть 5 основных корпусов: Ломоносова. Кронверкский.Биржевая линия.Гривцова.Чайковского. О каком хочешь узнать побольше?"
+    response = AliceResponse(event=event, text=text, tts=tts, intent_hooks={"numbers":"about_campus_enum", "about_campus_enum":"about_campus_enum"})
+    response.to_state("callback", "about_campus_enum")
     return response
 
-def fallback(event:AliceEvent, *args, **kwargs):
-    return AliceResponse(event, "Извините, непонятно")
+def about_campus_enum(event, campus="kronva", number=None, init=False, field=None, *args, **kwargs):
+    print("FIELD", field)
+    campuses = ["lomo", "kronva", "birga", "griva", "chaika"]
+    try:
+        campus = campuses[number-1]
+    except:
+        pass
+    link = f"{HOST}/gsheet/campuses/?campus={campus}&top"
+    offset = event.state.get("offset", 0)
+    if init:
+        offset = 0
+    campuses = enum(link=link, offset=offset)
+    if campuses:
+        if field:
+            return about_campus_enum_details(event, campuses)
+        phrase = get_phrase(campuses[0], "phrase")
+        response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM":"about_campus_enum_details"})
+        if len(campuses) == 2:
+            response.add_text("Интересно узнать про историю?")
+            response.to_state("callback", "about_campus_enum_details")
+            response.to_state("field", "history")
+            response.to_state("offset", offset+1)
+        if len(campuses) == 1:
+             response.add_text("Приложений больше нет")
+        return response
+
+def about_campus_enum_details(event, campus, field):
+    print(campus)
+    return AliceResponse(event, "Заглушка вопроса про корпус")
+
 
 def about_apps(event, *args, **kwargs):
     text= """
@@ -38,8 +69,8 @@ def about_apps(event, *args, **kwargs):
     4. itmo.students\n\n
     Что интересует?
     """
-    tts = "Я могу рассказать про май итм+о. ИС+У. итм+о сть+юденс и итм+о мэп. Что интересует?"
-    response = AliceResponse(event=event, text=text, tts=tts, intent_hooks=["numbers", "about_app_enum"])
+    tts = "Я могу рассказать про май итм+о. итм+о мэп. ИС+У. и итм+о сть+юденс  Что интересует?"
+    response = AliceResponse(event=event, text=text, tts=tts, intent_hooks={"numbers":"about_app_enum", "about_app_enum":"about_app_enum"})
     response.to_state("callback", "about_app_enum")
     return response
 
@@ -67,14 +98,16 @@ def about_app_enum(event, app="isu", number=None, init=False, *args, **kwargs):
     apps = enum(link=link, offset=offset)
     if apps:
         phrase = get_phrase(apps[0], "phrase")
-        response = AliceResponse(event=event, **phrase, intent_hooks=["YANDEX.CONFIRM"])
+        response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM":"about_app_enum"})
         if len(apps) == 2:
             response.add_text("Интересно узнать про ещё одно приложение?")
             response.to_state("callback", "about_app_enum")
             response.to_state("offset", offset+1)
         if len(apps) == 1:
              response.add_text("Приложений больше нет")
+             response.intent_hooks = {}
         return response
+
         
 
 def repeat(event:AliceEvent, *args, **kwargs):
@@ -84,6 +117,8 @@ def repeat(event:AliceEvent, *args, **kwargs):
 def confirm(event:AliceEvent, *args, **kwargs):
     return AliceResponse(event=event, text="Заглушка на согласие")
 
+def fallback(event:AliceEvent, *args, **kwargs):
+    return AliceResponse(event, "Извините, непонятно")
 
 def numbers(event:AliceEvent, *args, **kwargs):
     return AliceResponse(event=event, text="Заглушка на число")
@@ -93,12 +128,13 @@ def numbers(event:AliceEvent, *args, **kwargs):
 
 INTENTS = {
     'about_campuses':  about_campuses,
-    'about_campus': about_campus,
+    'about_campus_enum': about_campus_enum,
     'about_apps': about_apps,
     'YANDEX.REPEAT': repeat,
     'YANDEX.CONFIRM': confirm,
     'numbers': numbers,
     'confirm': confirm,
+    'about_campus_enum_details': about_campus_enum_details,
     'about_app_enum': about_app_enum
 }
 
@@ -108,15 +144,14 @@ class BotHandler(APIView):
         event = AliceEvent(request=request)
         intent, slots = event.get_intent()
         print(slots)
-
-        if event.intent_hooks and event.callback:
-            if intent in event.intent_hooks:
-                print("ОТВЕТ НА ИНТЕНТ")
-                slots = {**slots, **event.slots}
-                return Response(INTENTS[event.callback](event, **slots)(intent, slots=slots))
+        print(event.intent_hooks)
+        
 
         if intent:
             try:
+                if event.intent_hooks:
+                    slots = {**slots, **event.slots}
+                    return Response(INTENTS[event.intent_hooks[intent]](event, **slots)(intent, slots=slots))
                 print("ОБЩИЙ ИНТЕНТ")
                 return Response(INTENTS[intent](event, init=True, **slots)(screen=intent, slots=slots))
             except KeyError as e:
