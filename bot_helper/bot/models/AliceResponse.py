@@ -23,7 +23,7 @@ class AliceResponse:
 
         webhook_response = {
         'response': response,
-        'session': self.event.session,
+        # 'session': self.event.session,
         'version': '1.0'
         }
         self.state["text"] = self.text
@@ -44,7 +44,7 @@ class AliceResponse:
             }
         webhook_response = {
         'response': response,
-        'session': self.event.session,
+        # 'session': self.event.session,
         'version': '1.0'
         }
         webhook_response["session_state"] = self.event.state

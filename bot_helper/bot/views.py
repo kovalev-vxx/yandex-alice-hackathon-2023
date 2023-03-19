@@ -2,6 +2,8 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 import requests
+
+from bot_helper.utils import get_data_from_xlsx
 from .models.AliceResponse import AliceResponse
 from .models.AliceEvent import AliceEvent
 
@@ -31,13 +33,13 @@ def about_apps(event, *args, **kwargs):
     text= """
     Я могу рассказать про:\n\n
     1. my.itmo\n
-    2. ИСУ\n
-    3. itmo.students\n
-    4. itmo.map\n\n
+    2. itmo.map\n
+    3. ИСУ\n
+    4. itmo.students\n\n
     Что интересует?
     """
     tts = "Я могу рассказать про май итм+о. ИС+У. итм+о сть+юденс и итм+о мэп. Что интересует?"
-    response = AliceResponse(event=event, text=text, tts=tts, intent_hooks=["about_app_enum"])
+    response = AliceResponse(event=event, text=text, tts=tts, intent_hooks=["numbers", "about_app_enum"])
     response.to_state("callback", "about_app_enum")
     return response
 
@@ -52,7 +54,12 @@ def enum(link, offset):
         return []
     
 
-def about_app_enum(event, app="isu", init=False, *args, **kwargs):
+def about_app_enum(event, app="isu", number=None, init=False, *args, **kwargs):
+    apps = ["my_itmo", "itmo_map", "ISU", "itmo_students"]
+    try:
+        app = apps[number-1]
+    except:
+        pass
     link = f"{HOST}/gsheet/apps/?app={app}&top"
     offset = event.state.get("offset", 0)
     if init:
@@ -78,6 +85,10 @@ def confirm(event:AliceEvent, *args, **kwargs):
     return AliceResponse(event=event, text="Заглушка на согласие")
 
 
+def numbers(event:AliceEvent, *args, **kwargs):
+    return AliceResponse(event=event, text="Заглушка на число")
+
+
 
 
 INTENTS = {
@@ -86,12 +97,9 @@ INTENTS = {
     'about_apps': about_apps,
     'YANDEX.REPEAT': repeat,
     'YANDEX.CONFIRM': confirm,
+    'numbers': numbers,
     'confirm': confirm,
     'about_app_enum': about_app_enum
-}
-
-CALLBACKS = {
-    'about_app_enum': about_app_enum,
 }
 
 
@@ -99,12 +107,13 @@ class BotHandler(APIView):
     def post(self, request):
         event = AliceEvent(request=request)
         intent, slots = event.get_intent()
+        print(slots)
 
         if event.intent_hooks and event.callback:
             if intent in event.intent_hooks:
                 print("ОТВЕТ НА ИНТЕНТ")
-                print(event.slots)
-                return Response(INTENTS[event.callback](event, **event.slots)(intent, slots=event.slots))
+                slots = {**slots, **event.slots}
+                return Response(INTENTS[event.callback](event, **slots)(intent, slots=slots))
 
         if intent:
             try:
