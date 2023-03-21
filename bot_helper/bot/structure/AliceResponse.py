@@ -1,8 +1,8 @@
-from ..models.AliceEvent import AliceEvent
+from ..structure.AliceEvent import AliceEvent
 
 
 class AliceResponse:
-    def __init__(self, event:AliceEvent, text, tts=None, state=None, repeat=False, intent_hooks={}) -> None:
+    def __init__(self, event:AliceEvent, text, tts=None, state=None, repeat=False, intent_hooks={}, init=False) -> None:
         self.state = {}
         self.text = text
         self.tts = tts if tts is not None else text
@@ -10,6 +10,8 @@ class AliceResponse:
         self.repeat = repeat
         self.end_session = False
         self.intent_hooks = intent_hooks
+        self.slots = {}
+        self.init = init
         
     def __call__(self, screen, slots={}):
         if self.repeat:
@@ -23,7 +25,6 @@ class AliceResponse:
 
         webhook_response = {
         'response': response,
-        # 'session': self.event.session,
         'version': '1.0'
         }
         self.state["text"] = self.text
@@ -31,7 +32,14 @@ class AliceResponse:
         self.state["end_session"] = self.end_session
         self.state["screen"] = screen
         self.state["intent_hooks"] = self.intent_hooks
-        self.state["slots"] = slots
+
+        if self.init:
+            self.state["slots"] = self.slots
+        else:
+            self.state["slots"] = {**slots, **self.slots}
+        
+
+
     
         webhook_response["session_state"] = self.state
         return webhook_response
@@ -60,3 +68,9 @@ class AliceResponse:
     
     def to_state(self, key, value):
         self.state[key] = value
+    
+    def to_slots(self, key, value):
+        self.slots[key] = value
+
+    def set_callback(self, callback):
+        self.state["callback"] = callback

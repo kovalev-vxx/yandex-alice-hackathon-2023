@@ -2,14 +2,15 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 import requests
+from .models import apps_getter, campuses_getter, campus_questions_getter
 
 from bot_helper.utils import get_data_from_xlsx
-from .models.AliceResponse import AliceResponse
-from .models.AliceEvent import AliceEvent
+from .structure.AliceResponse import AliceResponse
+from .structure.AliceEvent import AliceEvent
 
 HOST = "http://localhost:8001"
 
-def get_phrase(_object, field):
+def build_phrase(_object, field):
     text = _object.get(field, "")
     tts = _object.get(f"{field}_tts", text)
     return {"text":text, "tts":tts}
@@ -29,34 +30,34 @@ def about_campuses(event, *args, **kwargs):
     response.to_state("callback", "about_campus_enum")
     return response
 
-def about_campus_enum(event, campus="kronva", number=None, init=False, field=None, *args, **kwargs):
-    print("FIELD", field)
+def about_campus_enum(event, campus="kronva", offset=0, number=-1, question_offset=0, field=None, *args, **kwargs):
     campuses = ["lomo", "kronva", "birga", "griva", "chaika"]
-    try:
+    if (number-1) in range(len(campuses)):
         campus = campuses[number-1]
-    except:
-        pass
-    link = f"{HOST}/gsheet/campuses/?campus={campus}&top"
-    offset = event.state.get("offset", 0)
-    if init:
-        offset = 0
-    campuses = enum(link=link, offset=offset)
+    campuses = campuses_getter(offset=offset, campus=campus)
+    questions = campus_questions_getter(offset=question_offset, field=field)
     if campuses:
         if field:
-            return about_campus_enum_details(event, campuses)
-        phrase = get_phrase(campuses[0], "phrase")
+            #зачитать поле и предложить следующий вопрос
+            return about_campus_enum_details(event, campus, field)
+        phrase = build_phrase(campuses[0], "phrase")
         response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM":"about_campus_enum_details"})
         if len(campuses) == 2:
             response.add_text("Интересно узнать про историю?")
-            response.to_state("callback", "about_campus_enum_details")
-            response.to_state("field", "history")
-            response.to_state("offset", offset+1)
+            response.to_slots("field", "history")
+            response.to_slots("offset", offset+1)
         if len(campuses) == 1:
              response.add_text("Приложений больше нет")
         return response
 
-def about_campus_enum_details(event, campus, field):
-    print(campus)
+#TODO: Добавить получение вопросов по корпусам, написать логику и интента
+#Если сказать нет, до откидывает обратно в кампусы
+#Назвать здесь offset не offset, а question_offset, чтобы остался offset про кампуc
+def about_campus_enum_details(event, campus, field, question_offset=0, *args, **kwargs):
+    questions = campus_questions_getter(offset=question_offset, field=field)
+    if questions:
+        phrase = build_phrase(questions[0], "question")
+        return AliceResponse(event, **phrase)
     return AliceResponse(event, "Заглушка вопроса про корпус")
 
 
@@ -70,39 +71,21 @@ def about_apps(event, *args, **kwargs):
     Что интересует?
     """
     tts = "Я могу рассказать про май итм+о. итм+о мэп. ИС+У. и итм+о сть+юденс  Что интересует?"
-    response = AliceResponse(event=event, text=text, tts=tts, intent_hooks={"numbers":"about_app_enum", "about_app_enum":"about_app_enum"})
-    response.to_state("callback", "about_app_enum")
+    response = AliceResponse(event=event, text=text, tts=tts, intent_hooks={"numbers":"about_app_enum", "about_app_enum":"about_app_enum"}, init=True)
     return response
-
-
-def enum(link, offset):
-    array = requests.get(link).json()
-    try:
-        if offset == len(array)-1:
-            return [array[offset]]
-        return [array[offset], array[offset+1]]
-    except IndexError:
-        return []
     
 
-def about_app_enum(event, app="isu", number=None, init=False, *args, **kwargs):
+def about_app_enum(event, app="isu", offset=0, number=-1, *args, **kwargs):
     apps = ["my_itmo", "itmo_map", "ISU", "itmo_students"]
-    try:
+    if (number-1) in range(len(apps)):
         app = apps[number-1]
-    except:
-        pass
-    link = f"{HOST}/gsheet/apps/?app={app}&top"
-    offset = event.state.get("offset", 0)
-    if init:
-        offset = 0
-    apps = enum(link=link, offset=offset)
+    apps = apps_getter(offset=offset, app=app)
     if apps:
-        phrase = get_phrase(apps[0], "phrase")
+        phrase = build_phrase(apps[0], "phrase")
         response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM":"about_app_enum"})
         if len(apps) == 2:
             response.add_text("Интересно узнать про ещё одно приложение?")
-            response.to_state("callback", "about_app_enum")
-            response.to_state("offset", offset+1)
+            response.to_slots("offset", offset+1)
         if len(apps) == 1:
              response.add_text("Приложений больше нет")
              response.intent_hooks = {}
@@ -142,18 +125,18 @@ INTENTS = {
 class BotHandler(APIView):
     def post(self, request):
         event = AliceEvent(request=request)
-        intent, slots = event.get_intent()
-        print(slots)
-        print(event.intent_hooks)
-        
+        intent, slots = event.get_intent()        
 
         if intent:
             try:
                 if event.intent_hooks:
-                    slots = {**slots, **event.slots}
-                    return Response(INTENTS[event.intent_hooks[intent]](event, **slots)(intent, slots=slots))
+                    try:
+                        slots = {**event.slots, **slots}
+                        return Response(INTENTS[event.intent_hooks[intent]](event, **slots)(intent, slots=slots))
+                    except:
+                        pass
                 print("ОБЩИЙ ИНТЕНТ")
-                return Response(INTENTS[intent](event, init=True, **slots)(screen=intent, slots=slots))
+                return Response(INTENTS[intent](event, **slots)(screen=intent, slots=slots))
             except KeyError as e:
                 return Response(fallback(event=event)("fallback"))
         else:
