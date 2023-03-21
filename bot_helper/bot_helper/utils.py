@@ -12,6 +12,7 @@ def load_gsheet():
 
     for sheet in table.sheet_names:
         GOOGLE_SHEET[sheet] = table.parse(sheet_name=sheet)
+        GOOGLE_SHEET[sheet].dropna()
     return GOOGLE_SHEET
 
 def get_data_from_xlsx(sheet_name):

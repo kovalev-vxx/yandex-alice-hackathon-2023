@@ -24,8 +24,8 @@ class AliceResponse:
         }
 
         webhook_response = {
-        'response': response,
-        'version': '1.0'
+            'response': response,
+            'version': '1.0'
         }
         self.state["text"] = self.text
         self.state["tts"] = self.tts

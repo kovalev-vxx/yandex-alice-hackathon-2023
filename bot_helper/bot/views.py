@@ -2,18 +2,20 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 import requests
-from .models import apps_getter, campuses_getter, campus_questions_getter
+from .models import apps_getter, campuses_getter, campus_questions_getter, faq_getter, discounts_getter
 
-from bot_helper.utils import get_data_from_xlsx
+# from bot_helper.utils import get_data_from_xlsx
 from .structure.AliceResponse import AliceResponse
 from .structure.AliceEvent import AliceEvent
 
 HOST = "http://localhost:8001"
 
+
 def build_phrase(_object, field):
     text = _object.get(field, "")
     tts = _object.get(f"{field}_tts", text)
-    return {"text":text, "tts":tts}
+    return {"text": text, "tts": tts}
+
 
 def about_campuses(event, *args, **kwargs):
     text = """
@@ -30,36 +32,6 @@ def about_campuses(event, *args, **kwargs):
     response.to_state("callback", "about_campus_enum")
     return response
 
-def about_campus_enum(event, campus="kronva", offset=0, number=-1, question_offset=0, field=None, *args, **kwargs):
-    campuses = ["lomo", "kronva", "birga", "griva", "chaika"]
-    if (number-1) in range(len(campuses)):
-        campus = campuses[number-1]
-    campuses = campuses_getter(offset=offset, campus=campus)
-    questions = campus_questions_getter(offset=question_offset, field=field)
-    if campuses:
-        if field:
-            #зачитать поле и предложить следующий вопрос
-            return about_campus_enum_details(event, campus, field)
-        phrase = build_phrase(campuses[0], "phrase")
-        response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM":"about_campus_enum_details"})
-        if len(campuses) == 2:
-            response.add_text("Интересно узнать про историю?")
-            response.to_slots("field", "history")
-            response.to_slots("offset", offset+1)
-        if len(campuses) == 1:
-             response.add_text("Приложений больше нет")
-        return response
-
-#TODO: Добавить получение вопросов по корпусам, написать логику и интента
-#Если сказать нет, до откидывает обратно в кампусы
-#Назвать здесь offset не offset, а question_offset, чтобы остался offset про кампуc
-def about_campus_enum_details(event, campus, field, question_offset=0, *args, **kwargs):
-    questions = campus_questions_getter(offset=question_offset, field=field)
-    if questions:
-        phrase = build_phrase(questions[0], "question")
-        return AliceResponse(event, **phrase)
-    return AliceResponse(event, "Заглушка вопроса про корпус")
-
 
 def about_apps(event, *args, **kwargs):
     text= """
@@ -75,7 +47,10 @@ def about_apps(event, *args, **kwargs):
     return response
     
 
-def about_app_enum(event, app="isu", offset=0, number=-1, *args, **kwargs):
+def about_app_enum(event, app="isu", offset=0, number=-1, init=False, *args, **kwargs):
+    if init:
+        offset = 0
+
     apps = ["my_itmo", "itmo_map", "ISU", "itmo_students"]
     if (number-1) in range(len(apps)):
         app = apps[number-1]
@@ -87,11 +62,64 @@ def about_app_enum(event, app="isu", offset=0, number=-1, *args, **kwargs):
             response.add_text("Интересно узнать про ещё одно приложение?")
             response.to_slots("offset", offset+1)
         if len(apps) == 1:
-             response.add_text("Приложений больше нет")
-             response.intent_hooks = {}
+            response.add_text("Приложений больше нет")
+            response.intent_hooks = {}
         return response
 
-        
+
+def about_faq(event, object_faq='name_rector', offset=0, topic=None, init=False, *args, **kwargs):
+    """
+    params:
+    event - parsed request
+    object_faq - FAQ name
+    offset - step of list
+    topic - category of discount
+    return:
+    response
+    """
+    if init:
+        offset = 0
+
+    objects_faq = faq_getter(offset, object_faq, topic)
+    if objects_faq:
+        phrase = build_phrase(objects_faq[0], "answer")
+        response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM": "about_faq"})
+        if len(objects_faq) == 2:
+            response.add_text(objects_faq[offset+1]['bot_question'])
+            response.to_slots("offset", offset+1)
+        if len(objects_faq) == 1:
+            response.add_text("Что еще хочешь узнать?")
+            response.intent_hooks = {}
+        return response
+
+
+def about_discounts(event, title='Планетарий 1', offset=0, category=None, init=False, *args, **kwargs):
+    """
+    params:
+    event - parsed request
+    title - title name
+    offset - step of list
+    category - category of discount
+    return:
+    response
+    """
+    if init:
+        offset = 0
+
+    discounts = discounts_getter(offset, title, category)
+    print(discounts[0])
+    if discounts:
+        phrase = build_phrase(discounts[0], "description")
+        response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM": "about_discounts"})
+        if len(discounts) == 2:
+            response.add_text(discounts[offset+1]['bot_question'])
+            response.to_slots("offset", offset+1)
+        if len(discounts) == 1:
+            response.add_text("Что еще хочешь узнать?")
+            response.intent_hooks = {}
+        return response
+    # return AliceResponse(title, 'sss')
+
 
 def repeat(event:AliceEvent, *args, **kwargs):
     return AliceResponse(event=event, text=event.state["text"], tts=event.state["tts"], state=event.state, repeat=True)
@@ -100,43 +128,43 @@ def repeat(event:AliceEvent, *args, **kwargs):
 def confirm(event:AliceEvent, *args, **kwargs):
     return AliceResponse(event=event, text="Заглушка на согласие")
 
+
 def fallback(event:AliceEvent, *args, **kwargs):
     return AliceResponse(event, "Извините, непонятно")
+
 
 def numbers(event:AliceEvent, *args, **kwargs):
     return AliceResponse(event=event, text="Заглушка на число")
 
 
-
-
 INTENTS = {
     'about_campuses':  about_campuses,
-    'about_campus_enum': about_campus_enum,
     'about_apps': about_apps,
     'YANDEX.REPEAT': repeat,
     'YANDEX.CONFIRM': confirm,
     'numbers': numbers,
     'confirm': confirm,
-    'about_campus_enum_details': about_campus_enum_details,
-    'about_app_enum': about_app_enum
+    'about_app_enum': about_app_enum,
+    'about_faq': about_faq,
+    'about_discounts': about_discounts,
 }
 
 
 class BotHandler(APIView):
     def post(self, request):
         event = AliceEvent(request=request)
-        intent, slots = event.get_intent()        
-
+        intent, slots = event.get_intent()
         if intent:
             try:
                 if event.intent_hooks:
                     try:
                         slots = {**event.slots, **slots}
+                        print("ЧАСТНЫЙ ИНТЕНТ")
                         return Response(INTENTS[event.intent_hooks[intent]](event, **slots)(intent, slots=slots))
                     except:
                         pass
                 print("ОБЩИЙ ИНТЕНТ")
-                return Response(INTENTS[intent](event, **slots)(screen=intent, slots=slots))
+                return Response(INTENTS[intent](event, init=True, **slots)(screen=intent, slots=slots))
             except KeyError as e:
                 return Response(fallback(event=event)("fallback"))
         else:
