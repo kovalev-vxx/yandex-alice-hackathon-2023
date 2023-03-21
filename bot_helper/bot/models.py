@@ -36,3 +36,7 @@ def faq_getter(offset, object_faq=None, topic=None):
 def discounts_getter(offset, title=None, category=None):
     link = f"{HOST}/gsheet/discounts/?title={title}&category={category}&top"
     return enum_validate(link=link, offset=offset)
+
+def coworking_getter(offset, campus=None):
+    link = f"{HOST}/gsheet/coworkings?campus={campus}"
+    return enum_validate(link=link, offset=offset)

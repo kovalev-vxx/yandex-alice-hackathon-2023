@@ -2,11 +2,13 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 import requests
-from .models import apps_getter, campuses_getter, campus_questions_getter, faq_getter, discounts_getter
+from .models import apps_getter, campuses_getter, campus_questions_getter, faq_getter, discounts_getter, coworking_getter
 
 # from bot_helper.utils import get_data_from_xlsx
 from .structure.AliceResponse import AliceResponse
 from .structure.AliceEvent import AliceEvent
+from random import choice as randomchoice
+
 
 
 
@@ -17,13 +19,15 @@ def build_phrase(_object, field):
 
 
 def about_coworkings(event, *args, **kwargs):
+    
+
     text = """
     Коворкинги есть в следующих корпусах:
 
-    - Ломоносова
-    - Кронверкский
-    - Биржевая линия
-    - Чайковского
+    1. Ломоносова
+    2. Кронверкский
+    3. Биржевая линия
+    4. Чайковского
 
     Какой корпус интересует? 🤔
     """
@@ -37,9 +41,30 @@ def about_coworkings(event, *args, **kwargs):
 
     Какой корпус интересует?
     """
-    response = AliceResponse(event=event, text=text, tts=tts, intent_hooks={"numbers":"about_campus_enum", "about_campus_enum":"about_campus_enum"})
+    response = AliceResponse(event=event, text=text, tts=tts, intent_hooks={"numbers":"about_coworking_enum"})
+    return response
 
 
+def about_coworking_enum(event, campus='lomo', number=-1, offset=0, init=False,  *args, **kwargs):
+    if init:
+        offset=0
+
+    campuses = ['lomo', 'kronva', 'birga', 'chaika']
+    if (number-1) in range(len(campuses)):
+        campus = campuses[number-1]
+
+    coworkings = coworking_getter(offset=offset, campus=campus)
+    if coworkings:
+        phrase = build_phrase(coworkings[0], 'phrase')
+        response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM":"about_coworking_enum"})
+        if len(coworkings) == 2:
+            response.add_text(randomchoice(["Найти ещё коворкинг здесь?", "Рассказать о еще одном коворкинге здесь?", "Рассказать о ещё одном?"]))
+            response.to_slots("offset", offset+1)
+        if len(coworkings) == 1:
+            response.add_text("В корпусе больше нет коворкингов.")
+            response.intent_hooks = {}
+        return response
+    pass
 
 
 def about_campuses(event, *args, **kwargs):
@@ -171,6 +196,8 @@ INTENTS = {
     'about_app_enum': about_app_enum,
     'about_faq': about_faq,
     'about_discounts': about_discounts,
+    'about_coworkings': about_coworkings,
+    'about_coworking_enum': about_coworking_enum
 }
 
 
