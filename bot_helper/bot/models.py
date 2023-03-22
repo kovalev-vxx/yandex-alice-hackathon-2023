@@ -29,13 +29,18 @@ def campus_questions_getter(offset, field=None):
 
 
 def faq_getter(offset, object_faq=None, topic=None):
-    link = f"{HOST}/gsheet/FAQ/?object_faq={object_faq}&topic={topic}&top"
+    # if topic is None:
+    #     link = f"{HOST}/gsheet/FAQ/?object_faq={object_faq}"
+    #     topic = enum_validate(link=link, offset=offset)[0]["topic"]
+
+    link = f"{HOST}/gsheet/FAQ/?object_faq={object_faq}&topic={topic}&top&filterby=topic"
     return enum_validate(link=link, offset=offset)
 
 
 def discounts_getter(offset, title=None, category=None):
     link = f"{HOST}/gsheet/discounts/?title={title}&category={category}&top"
     return enum_validate(link=link, offset=offset)
+
 
 def coworking_getter(offset, campus=None):
     link = f"{HOST}/gsheet/coworkings?campus={campus}"

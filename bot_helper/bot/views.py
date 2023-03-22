@@ -199,17 +199,25 @@ def about_faq(event, object_faq='name_rector', offset=0, topic=None, init=False,
     if init:
         offset = 0
 
+    if topic is None:
+        objects_faq = faq_getter(offset, object_faq)
+        topic = objects_faq[0]['topic']
+
     objects_faq = faq_getter(offset, object_faq, topic)
+    # print(topic)
+    # print(objects_faq)
     if objects_faq:
         phrase = build_phrase(objects_faq[0], "answer")
         response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM": "about_faq"})
         if len(objects_faq) == 2:
             response.add_text(objects_faq[1]['bot_question'])
             response.to_slots("offset", offset+1)
+            response.to_slots("topic", objects_faq[0]['topic'])
         if len(objects_faq) == 1:
             response.add_text("Что еще хочешь узнать?")
             response.intent_hooks = {}
         return response
+    # return AliceResponse(event, "test faq")
 
 
 # Discounts
@@ -304,7 +312,6 @@ class BotHandler(APIView):
     def post(self, request):
         event = AliceEvent(request=request)
         intent, slots = event.get_intent()
-        print(intent, slots)
         if intent:
             try:
                 if event.intent_hooks:
@@ -313,6 +320,7 @@ class BotHandler(APIView):
                         print("ЧАСТНЫЙ ИНТЕНТ")
                         return Response(INTENTS[event.intent_hooks[intent]](event, **slots)(intent, slots=slots))
                     except KeyError as e:
+                        print("ОШИБКА")
                         print(e)
                 print("ОБЩИЙ ИНТЕНТ")
                 return Response(INTENTS[intent](event, init=True, **slots)(screen=intent, slots=slots))
