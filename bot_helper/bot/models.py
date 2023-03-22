@@ -38,13 +38,16 @@ def campus_questions_getter(offset, field=None):
 
 
 def faq_getter(offset, object_faq=None, topic=None):
-    res = get_from_excel_local({'object_faq':object_faq, 'topic': topic}, filterby='topic', sheet="FAQ", top=True)
+    res = get_from_excel_local({'object_faq': object_faq, 'topic': topic}, filterby='topic', sheet="FAQ", top=True)
     return enum_validate_local(res=res, offset=offset)
 
 
 def discounts_getter(offset, title=None, category=None):
-    res = get_from_excel_local({'title':title, 'category':category}, sheet="discounts", top=True)
+    res = get_from_excel_local({'title': title, 'category': category}, filterby='category', sheet="discounts", top=True)
+    print([dis['category'] for dis in res])
     return enum_validate_local(res=res, offset=offset)
+    # res = get_from_excel_local({'category': category}, filterby='category', sheet="discounts", top=True)
+    # return res
     
 
 def coworking_getter(offset, campus=None):
