@@ -314,6 +314,7 @@ INTENTS = {
     'YANDEX.HELP':help_intent,
     'help_intent': help_intent,
     'YANDEX.WHAT_CAN_YOU_DO' : common_intent,
+    'repeat': repeat,
 }
 
 
@@ -322,6 +323,7 @@ class BotHandler(APIView):
         event = AliceEvent(request=request)
         intent, slots = event.get_intent()
         print(intent, slots)
+
         if intent:
             try:
                 if event.intent_hooks:
@@ -336,4 +338,6 @@ class BotHandler(APIView):
             except KeyError as e:
                 return Response(fallback(event=event)("fallback"))
         else:
-            return Response(AliceResponse(event, "Привет, как дела?")("Hello"))
+            text = "Я тебя не понял 🤔\n\nРассказать, что умею?"
+            tts = "Я тебя не понял.\n\nРассказать, что умею?"
+            return Response(AliceResponse(event, text=text, tts=tts, intent_hooks={'YANDEX.CONFIRM':'help_init'})("Hello"))

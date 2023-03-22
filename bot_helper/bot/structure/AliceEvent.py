@@ -9,6 +9,7 @@ class AliceEvent:
         self.callback = self.state.get("callback", None)
         self.intent_hooks = self.state.get("intent_hooks", None)
         self.slots = self.state.get("slots", {})
+        # self.new = self.session["new"]
     
     def get_state(self):
         return self.state
