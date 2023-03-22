@@ -10,6 +10,7 @@ class AliceEvent:
         self.intent_hooks = self.state.get("intent_hooks", None)
         self.slots = self.state.get("slots", {})
         self.new = self.session["new"]
+        self.user_id = self.session["user"]["user_id"]
     
     def get_state(self):
         return self.state

@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 import requests
@@ -9,14 +9,22 @@ from .structure.AliceResponse import AliceResponse, Button
 from .structure.AliceEvent import AliceEvent
 from random import choice as randomchoice
 from random import seed
+import users.models as user_models
+import users.serializers as user_serializers
 
 
-def common_intent(event, text=None, tts=None, show_text=True, *args, **kwargs):
+def common_intent(event, text=None, tts=None, show_text=True, start=False, *args, **kwargs):
 
     _text = "Всегда рад помочь! Рассказать подробнее, что я умею?"
     _tts = "Всегда рад помочь! Рассказать подробнее, что я умею?"
 
+
+
     if not text:
+        _text= """Как и всякий кошачий, очень мудрый и много чего знаю.\n\nМогу рассказать подробно о корпусах Университета ИТМО, коворкингах, приложениях и скидках. Обращайся!\n\nЗнаю очень много сокращений! Спокойно спрашивай про "Ломо" или "Кронву" – я пойму! Рассказать подробнее что я умею?"""
+        _tts = "Интересно, что я еще умею?"
+    
+    if start:
         _text= """Как и всякий кошачий, очень мудрый и много чего знаю.\n\nМогу рассказать подробно о корпусах Университета ИТМО, коворкингах, приложениях и скидках. Обращайся!\n\nЗнаю очень много сокращений! Спокойно спрашивай про "Ломо" или "Кронву" – я пойму! Рассказать подробнее что я умею?"""
         _tts = "Интересно, что я еще умею?"
 
@@ -29,6 +37,7 @@ def common_intent(event, text=None, tts=None, show_text=True, *args, **kwargs):
     
     if tts:
         _tts = f"{tts}\n\n{_tts}"
+
 
     init_response = AliceResponse(event, text=_text, tts=tts, intent_hooks={'YANDEX.CONFIRM':'help_intent'})
     init_response.to_slots("offset", 0)
@@ -333,9 +342,21 @@ class BotHandler(APIView):
     def post(self, request):
         event = AliceEvent(request=request)
         intent, slots = event.get_intent()
+
+
         
         if event.new:
-            return Response(common_intent(event, text="Привет! Я Барс - твой МегаАдаптер в ИТМО!\n\nНапомнить, что умею?", show_text=False)(screen="hello"))
+            print(event.user_id)
+            try:
+                user = get_object_or_404(user_models.User, alice_user_id=event.user_id)
+                return Response(common_intent(event, text="Привет! Я Барс - твой МегаАдаптер в ИТМО!\n\nС возвращением! 😁\n\nНапомнить, что умею?🤔", start=True)(screen="hello"))
+            except:
+                serializer = user_serializers.UserSerializer(data={"alice_user_id":event.user_id, "name":"unknown"})
+                if serializer.is_valid():
+                    serializer.save()
+                return Response(common_intent(event, text="Привет! Я Барс - твой МегаАдаптер в ИТМО!\n\nЯ талисман университета с 2013 года, очень много о нем знаю и с радостью поделюсь с тобой!\n\n", show_text=True)(screen="hello"))
+
+
 
         if intent:
             try:
