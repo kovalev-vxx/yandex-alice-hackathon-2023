@@ -12,10 +12,14 @@ from random import choice as randomchoice
 
 def common_intent(event, text=None, tts=None):
     _text= "Интересно, что я еще умею?"
+    _tts = "Интересно, что я еще умею?"
     if text:
         _text = f"{text}\n\n{_text}"
+    
+    if tts:
+        _tts = f"{tts}\n\n{_tts}"
 
-    init_response = AliceResponse(event, text=_text, intent_hooks={})
+    init_response = AliceResponse(event, text=_text, tts=tts, intent_hooks={})
     init_response.add_txt_buttons(['Скидки', 'Приложения','Коворкинги','Корпуса'])
     return init_response
 
@@ -123,6 +127,7 @@ def reject_campus_details(event, *args, **kwargs):
 def about_campus_details(event, campus='lomo', field='history', init=False, question_offset=0, offset=0, *args, **kwargs):
     if init:
         question_offset=0
+        offset=0
     questions = campus_questions_getter(offset=question_offset, field=f"{field}")
     campus = campuses_getter(offset=0, campus=campus)[0]
     
@@ -133,6 +138,9 @@ def about_campus_details(event, campus='lomo', field='history', init=False, ques
             question_phrase = build_phrase(questions[1], 'question')
             response.add_text(**question_phrase)
             response.to_slots("question_offset", question_offset+1)
+            if offset == 0:
+                response.to_slots("offset", 1)
+                response.to_slots("campus", campus)
         if len(questions) == 1:
             response.add_text("Это все, что я знаю про этот корпус, рассказать про другой?")
             response.intent_hooks = {"YANDEX.CONFIRM":"about_campus_enum"}
@@ -172,7 +180,9 @@ def about_app_enum(event, app="isu", offset=0, number=-1, init=False, *args, **k
             response.add_text("Интересно узнать про ещё одно приложение?")
             response.to_slots("offset", offset+1)
         if len(apps) == 1:
-            return common_intent(event, "Приложений больше нет.")
+            phrase['text'] = f"""{phrase['text']}\n\nПриложений больше нет."""
+            phrase['tts'] = f"""{phrase['tts']} Приложений больше нет."""
+            return common_intent(event, **phrase)
         return response
 
 
