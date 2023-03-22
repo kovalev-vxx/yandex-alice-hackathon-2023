@@ -8,13 +8,38 @@ from .models import apps_getter, campuses_getter, campus_questions_getter, faq_g
 from .structure.AliceResponse import AliceResponse
 from .structure.AliceEvent import AliceEvent
 
-HOST = "http://localhost:8001"
 
 
 def build_phrase(_object, field):
     text = _object.get(field, "")
     tts = _object.get(f"{field}_tts", text)
     return {"text": text, "tts": tts}
+
+
+def about_coworkings(event, *args, **kwargs):
+    text = """
+    Коворкинги есть в следующих корпусах:
+
+    - Ломоносова
+    - Кронверкский
+    - Биржевая линия
+    - Чайковского
+
+    Какой корпус интересует? 🤔
+    """
+    tts = """
+    Ков+оркинги есть в сл+едующих корпус+ах:
+
+    - Ломон+осова.
+    - Кр+онверкский.
+    - Биржев+ая линия.
+    - Чайк+овского.
+
+    Какой корпус интересует?
+    """
+    response = AliceResponse(event=event, text=text, tts=tts, intent_hooks={"numbers":"about_campus_enum", "about_campus_enum":"about_campus_enum"})
+
+
 
 
 def about_campuses(event, *args, **kwargs):
@@ -29,7 +54,6 @@ def about_campuses(event, *args, **kwargs):
     """
     tts = "Всего у ИТМ+О есть 5 основных корпусов: Ломоносова. Кронверкский.Биржевая линия.Гривцова.Чайковского. О каком хочешь узнать побольше?"
     response = AliceResponse(event=event, text=text, tts=tts, intent_hooks={"numbers":"about_campus_enum", "about_campus_enum":"about_campus_enum"})
-    response.to_state("callback", "about_campus_enum")
     return response
 
 
@@ -160,6 +184,7 @@ class BotHandler(APIView):
     def post(self, request):
         event = AliceEvent(request=request)
         intent, slots = event.get_intent()
+        print(intent, slots)
         if intent:
             try:
                 if event.intent_hooks:
@@ -167,8 +192,8 @@ class BotHandler(APIView):
                         slots = {**event.slots, **slots}
                         print("ЧАСТНЫЙ ИНТЕНТ")
                         return Response(INTENTS[event.intent_hooks[intent]](event, **slots)(intent, slots=slots))
-                    except:
-                        pass
+                    except KeyError as e:
+                        print(e)
                 print("ОБЩИЙ ИНТЕНТ")
                 return Response(INTENTS[intent](event, init=True, **slots)(screen=intent, slots=slots))
             except KeyError as e:

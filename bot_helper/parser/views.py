@@ -65,6 +65,9 @@ class UpdateSpreadSheet(APIView):
 class SpreadsheetFilter(APIView):
     def get(self, request, sheet, *args, **kwargs):
         result = get_data_from_xlsx(sheet)
+        if "filterby" in request.query_params.keys():
+            filterby = request.query_params["filterby"]
+            result = result.sort_values(by=[filterby])
         if "top" in request.query_params.keys():
             for param, value in request.query_params.items():
                 try:
