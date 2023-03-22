@@ -212,6 +212,27 @@ def about_faq(event, object_faq='name_rector', offset=0, topic=None, init=False,
         return response
 
 
+# Discounts
+def about_discounts_start(event, *args, **kwargs):
+    text = """
+    Можешь спросить про скидки около какого-либо корпуса или по категориям:\n
+    - Развлечения 🕹️\n
+    - Спорт 💪\n
+    - Еда 🍔\n
+    - Здоровье 🏥\n
+    - Учеба 💻\n
+    Что интересует? 🤔
+    """
+    tts = """
+    Можешь спросить про скидки около какого-либо корпуса или по следующим категориям. Развлечения, Спорт, Еда, Здоровье, Учеба. Что интересует?
+    """
+    response = AliceResponse(event=event, text=text, tts=tts,
+                             intent_hooks={"YANDEX.CONFIRM": "about_discounts_category",
+                                           "YANDEX.REJECT": "YANDEX.REJECT",
+                                           "about_discounts": "about_discounts"}, init=True)
+    return response
+
+
 def about_discounts(event, title='Планетарий 1', offset=0, category=None, init=False, *args, **kwargs):
     """
     params:
@@ -225,19 +246,19 @@ def about_discounts(event, title='Планетарий 1', offset=0, category=No
     if init:
         offset = 0
 
-    discounts = discounts_getter(offset, title, category)
-    print(discounts[0])
-    if discounts:
-        phrase = build_phrase(discounts[0], "description")
-        response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM": "about_discounts"})
-        if len(discounts) == 2:
-            response.add_text(discounts[offset+1]['bot_question'])
-            response.to_slots("offset", offset+1)
-        if len(discounts) == 1:
-            response.add_text("Что еще хочешь узнать?")
-            response.intent_hooks = {}
-        return response
-    # return AliceResponse(title, 'sss')
+    # discounts = discounts_getter(offset, title, category)
+    print(category)
+    # if discounts:
+    #     phrase = build_phrase(discounts[0], "description")
+    #     response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM": "about_discounts"})
+    #     if len(discounts) == 2:
+    #         response.add_text(discounts[offset+1]['bot_question'])
+    #         response.to_slots("offset", offset+1)
+    #     if len(discounts) == 1:
+    #         response.add_text("Что еще хочешь узнать?")
+    #         response.intent_hooks = {}
+    #     return response
+    return AliceResponse(event, 'test dis')
 
 
 def repeat(event:AliceEvent, *args, **kwargs):
@@ -269,12 +290,13 @@ INTENTS = {
     'confirm': confirm,
     'about_app_enum': about_app_enum,
     'about_faq': about_faq,
-    'about_discounts': about_discounts,
     'about_coworkings': about_coworkings,
     'about_coworking_enum': about_coworking_enum,
     'about_campus_enum':about_campus_enum,
     'about_campus_details':about_campus_details,
-    'reject_campus_details':reject_campus_details
+    'reject_campus_details':reject_campus_details,
+    'about_discounts_start': about_discounts_start,
+    'about_discounts': about_discounts,
 }
 
 
