@@ -8,7 +8,7 @@ class Button:
     
 
 class AliceResponse:
-    def __init__(self, event:AliceEvent, text, tts=None, state=None, repeat=False, intent_hooks={}, init=False) -> None:
+    def __init__(self, event:AliceEvent, text, tts=None, state=None, end_session=False, repeat=False, intent_hooks={}, init=False) -> None:
         self.state = {}
         self.text = text
         self.tts = tts if tts is not None else text
@@ -19,6 +19,7 @@ class AliceResponse:
         self.slots = {}
         self.init = init
         self.buttons = []
+        self.end_session = end_session
         
     def __call__(self, screen, slots={}):
         if self.repeat:
@@ -28,7 +29,7 @@ class AliceResponse:
             'text': self.text,
             'tts': self.tts,
             'buttons': self.buttons,
-            "end_session": False,
+            "end_session": self.end_session,
         }
 
         webhook_response = {

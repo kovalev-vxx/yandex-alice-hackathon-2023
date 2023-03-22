@@ -47,7 +47,7 @@ def discounts_getter(offset, title=None, category=None):
     
 
 def coworking_getter(offset, campus=None):
-    res = get_from_excel_local({'campus':campus}, sheet="coworkings", top=True)
+    res = get_from_excel_local({'campus':campus}, sheet="coworkings", top=False)
     return enum_validate_local(res=res, offset=offset)
 
 def help_getter(offset):
