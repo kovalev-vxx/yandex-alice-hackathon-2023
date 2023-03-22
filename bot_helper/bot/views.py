@@ -73,8 +73,9 @@ def about_coworking_enum(event, campus='lomo', number=-1, offset=0, init=False, 
             response.add_text(randomchoice(["Найти ещё коворкинг здесь?", "Рассказать о еще одном коворкинге здесь?", "Рассказать о ещё одном?"]))
             response.to_slots("offset", offset+1)
         if len(coworkings) == 1:
-            response.add_text("В корпусе больше нет коворкингов.")
-            response.intent_hooks = {}
+            phrase['text'] = f"""{phrase['text']}\n\nВ корпусе больше нет коворкингов."""
+            phrase['tts'] = f"""{phrase['tts']} В корпусе больше нет ков+оркингов."""
+            return common_intent(event, **phrase)
         return response
     pass
 
@@ -116,12 +117,18 @@ def about_campus_enum(event, campus='lomo', number=-1, init=False, question_offs
             response.to_slots("field", questions[0]['field'])
             response.to_slots("offset", offset+1)
         if len(campuses) == 1:
-            return common_intent(event, "Больше ничего не знаю про корпуса.")
+            question_phrase = build_phrase(questions[0], 'question')
+            response.add_text(**question_phrase)
+            response.to_slots("campus", campus)
+            response.to_slots("field", questions[0]['field'])
+            response.to_slots("offset", offset+1)
         return response
 
-def reject_campus_details(event, *args, **kwargs):
+def reject_campus_details(event, offset=0, *args, **kwargs):
     text = "Хочешь узнать про другие корпуса?"
     tts = "Хочешь узнать про другие корпус+а?"
+    if offset==5:
+            return common_intent(event, "Больше ничего не знаю про корпуса.")
     return AliceResponse(event=event, text=text, tts=tts, intent_hooks={"YANDEX.CONFIRM":"about_campus_enum"})
 
 def about_campus_details(event, campus='lomo', field='history', init=False, question_offset=0, offset=0, *args, **kwargs):
