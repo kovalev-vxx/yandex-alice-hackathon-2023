@@ -11,18 +11,27 @@ from random import choice as randomchoice
 from random import seed
 
 
-def common_intent(event, text=None, tts=None, *args, **kwargs):
-    _text= """Как и всякий кошачий, очень мудрый и много чего знаю.\n\nМогу рассказать подробно о корпусах Университета ИТМО, коворкингах, приложениях и скидках. Обращайся!\n\nЗнаю очень много сокращений! Спокойно спрашивай про "Ломо" или "Кронву" – я пойму!
+def common_intent(event, text=None, tts=None, show_text=True, *args, **kwargs):
 
-Рассказать подробнее что я умею?"""
-    _tts = "Интересно, что я еще умею?"
+    _text = "Всегда рад помочь! Рассказать подробнее, что я умею?"
+    _tts = "Всегда рад помочь! Рассказать подробнее, что я умею?"
+
+    if not text:
+        _text= """Как и всякий кошачий, очень мудрый и много чего знаю.\n\nМогу рассказать подробно о корпусах Университета ИТМО, коворкингах, приложениях и скидках. Обращайся!\n\nЗнаю очень много сокращений! Спокойно спрашивай про "Ломо" или "Кронву" – я пойму! Рассказать подробнее что я умею?"""
+        _tts = "Интересно, что я еще умею?"
+
+    if not show_text:
+        _text=""
+        _tts=""
+
     if text:
         _text = f"{text}\n\n{_text}"
     
     if tts:
         _tts = f"{tts}\n\n{_tts}"
 
-    init_response = AliceResponse(event, text=_text, tts=tts, intent_hooks={})
+    init_response = AliceResponse(event, text=_text, tts=tts, intent_hooks={'YANDEX.CONFIRM':'help_intent'})
+    init_response.to_slots("offset", 0)
     init_response.add_txt_buttons(['Скидки', 'Приложения','Коворкинги','Корпуса'])
     return init_response
 
@@ -270,25 +279,27 @@ def reject(event:AliceEvent, *args, **kwargs):
 
 def help_intent(event:AliceEvent, offset=0, init=False, *args, **kwargs):
     seed(offset)
+    text = ""
 
     if init:
         offset=0
-    
+        text = "Барс всегда придет на помощь!\n\nЯ могу много чего. Расскажу по порядку:"
+
     guide = help_getter(offset=offset)
 
-    text = "Барс всегда придет на помощь!\n\nЯ могу много чего. Расскажу по порядку:"
+
     if guide:
         phrase = build_phrase(guide[0], "guide")
-        phrase['text'] = f"""Барс всегда придет на помощь!\n\nЯ могу много чего. Расскажу по порядку:\n\n{phrase['text']}"""
-        phrase['tts'] = f"""Барс всегда придет на помощь!\n\nЯ могу много чего. Расскажу по порядку:\n\n{phrase['tts']}"""
+        phrase['text'] = f"""{text}\n\n{phrase['text']}"""
+        phrase['tts'] = f"""{text}\n\n{phrase['tts']}"""
         response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM":"help_intent"})
         if len(guide) == 2:
             response.add_text(randomchoice(["Интересно, что я ещё умею?", "Рассказать, что я ещё умею?"]))
             response.to_slots("offset", offset+1)
         if len(guide) == 1:
-            phrase['text'] = f"""{phrase['text']}\n\nОбращайся!"""
-            phrase['tts'] = f"""{phrase['tts']}Обращайся!"""
-            return common_intent(event, **phrase)
+            phrase['text'] = f"""{phrase['text']}\n\nОбращайся! Повторить ещё раз, что я умею?"""
+            phrase['tts'] = f"""{phrase['tts']}Обращайся! Повторить ещё раз, что я умею?"""
+            return common_intent(event, **phrase, show_text=False)
         return response
 
 
@@ -322,7 +333,9 @@ class BotHandler(APIView):
     def post(self, request):
         event = AliceEvent(request=request)
         intent, slots = event.get_intent()
-        print(intent, slots)
+        
+        if event.new:
+            return Response(common_intent(event, text="Привет! Я Барс - твой МегаАдаптер в ИТМО!\n\nНапомнить, что умею?", show_text=False)(screen="hello"))
 
         if intent:
             try:
@@ -340,4 +353,4 @@ class BotHandler(APIView):
         else:
             text = "Я тебя не понял 🤔\n\nРассказать, что умею?"
             tts = "Я тебя не понял.\n\nРассказать, что умею?"
-            return Response(AliceResponse(event, text=text, tts=tts, intent_hooks={'YANDEX.CONFIRM':'help_init'})("Hello"))
+            return Response(AliceResponse(event, text=text, tts=tts, intent_hooks={'YANDEX.CONFIRM':'help_intent'})("don't understand"))
