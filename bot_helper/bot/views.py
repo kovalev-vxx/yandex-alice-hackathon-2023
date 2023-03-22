@@ -258,7 +258,7 @@ def about_discounts_start(event, *args, **kwargs):
     response = AliceResponse(event=event, text=text, tts=tts,
                              intent_hooks={"YANDEX.CONFIRM": "about_discounts",
                                            "about_discount_categories": "about_discount_categories",
-                                           "about_campuses": "about_campuses"}, init=True)
+                                           "about_campuses_with_discounts": "about_campuses_with_discounts"}, init=True)
     return response
 
 
@@ -289,7 +289,6 @@ def about_discount_categories(event, title=None, offset=0, category=None, init=F
         if len(discounts) == 1:
             phrase['text'] = f"""{phrase['text']}\n\nКонец скидочкам. Эххх..."""
             phrase['tts'] = f"""{phrase['tts']} Конец ск+идочкам. Эх."""
-            # todo: реакция на отказ
             return common_intent(event, **phrase)
         return response
 
@@ -300,6 +299,19 @@ def about_discount_link(event, link, offset, *args, **kwargs):
     response.add_text("Вернемся к скидкам?")
     response.to_slots("offset", offset)
     return response
+
+
+def about_campuses_with_discounts(event, *args, **kwargs):
+    phrase = {'text': """Скидки есть у корпусов:\n
+    1. Ломоносова\n
+    2. Кронверкский\n
+    3. Биржевая линия\n
+    4. Гривцова\n
+    5.Чайковского\n
+    У какого интересуют?""",
+              'tts': """Скидки есть у корпусов, Ломон+осова, Кр+онверкский, Биржев+ая линия, Гривц+ова, 
+    Чайк+овского. У какого интересуют?"""}
+    return AliceResponse(event, 'test about_campuses_with_discounts')
 
 
 def repeat(event: AliceEvent, *args, **kwargs):
@@ -370,6 +382,7 @@ INTENTS = {
     'about_discounts_start': about_discounts_start,
     'about_discount_categories': about_discount_categories,
     'about_discount_link': about_discount_link,
+    'about_campuses_with_discounts': about_campuses_with_discounts,
 }
 
 

@@ -42,9 +42,9 @@ def faq_getter(offset, object_faq=None, topic=None):
     return enum_validate_local(res=res, offset=offset)
 
 
-def discounts_getter(offset, title=None, category=None):
-    res = get_from_excel_local({'title': title, 'category': category}, filterby='category', sheet="discounts", top=True)
-    print([dis['category'] for dis in res])
+def discounts_getter(offset, title=None, category=None, filter='category'):
+    res = get_from_excel_local({'title': title, 'category': category}, filterby=filter, sheet="discounts", top=True)
+    # print([dis['category'] for dis in res])
     return enum_validate_local(res=res, offset=offset)
     # res = get_from_excel_local({'category': category}, filterby='category', sheet="discounts", top=True)
     # return res
