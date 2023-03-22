@@ -85,12 +85,18 @@ def about_faq(event, object_faq='name_rector', offset=0, topic=None, init=False,
         phrase = build_phrase(objects_faq[0], "answer")
         response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM": "about_faq"})
         if len(objects_faq) == 2:
-            response.add_text(objects_faq[offset+1]['bot_question'])
+            response.add_text(objects_faq[1]['bot_question'])
             response.to_slots("offset", offset+1)
         if len(objects_faq) == 1:
             response.add_text("Что еще хочешь узнать?")
             response.intent_hooks = {}
         return response
+
+
+# Discounts
+def about_discounts_start(event, *args, **kwargs):
+    
+    return 0
 
 
 def about_discounts(event, title='Планетарий 1', offset=0, category=None, init=False, *args, **kwargs):
