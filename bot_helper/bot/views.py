@@ -206,7 +206,7 @@ def about_apps(event, *args, **kwargs):
     Что интересует?
     """
     tts = "Я могу рассказать про май итм+о. итм+о мэп. ИС+У. и итм+о сть+юденс  Что интересует?"
-    response = AliceResponse(event=event, text=text, tts=tts, intent_hooks={"numbers":"about_app_enum", "about_app_enum":"about_app_enum"}, init=True)
+    response = AliceResponse(event=event, text=text, tts=tts, intent_hooks={"numbers":"about_app_enum"}, init=True)
     response.add_txt_buttons(['my.itmo', 'itmo.map', 'ИСУ', 'itmo.students'])
     return response
     
@@ -246,16 +246,24 @@ def about_faq(event, object_faq='name_rector', offset=0, topic=None, init=False,
     if init:
         offset = 0
 
+    if topic is None:
+        objects_faq = faq_getter(offset, object_faq)
+        topic = objects_faq[0]['topic']
+
     objects_faq = faq_getter(offset, object_faq, topic)
     if objects_faq:
         phrase = build_phrase(objects_faq[0], "answer")
+        print(phrase)
         response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM": "about_faq"})
         if len(objects_faq) == 2:
             response.add_text(objects_faq[1]['bot_question'])
-            response.to_slots("offset", offset+1)
-        if len(objects_faq) == 1:
-            response.add_text("Что еще хочешь узнать?")
-            response.intent_hooks = {}
+            response.to_slots("offset", offset + 1)
+            if offset==0:
+                response.to_slots("topic", topic)
+        elif len(objects_faq) == 1:
+            phrase['text'] = f"""{phrase['text']}\n\nФух, на этом у меня все..."""
+            phrase['tts'] = f"""{phrase['tts']} Фух, на этом у меня все..."""
+            return common_intent(event, **phrase)
         return response
 
 
