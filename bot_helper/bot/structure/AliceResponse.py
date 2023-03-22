@@ -1,5 +1,11 @@
 from ..structure.AliceEvent import AliceEvent
 
+class Button:
+    def __init__(self, title, url=None, hide=True):
+        self.title = title
+        self.url = url
+        self.hide = hide
+    
 
 class AliceResponse:
     def __init__(self, event:AliceEvent, text, tts=None, state=None, repeat=False, intent_hooks={}, init=False) -> None:
@@ -12,6 +18,7 @@ class AliceResponse:
         self.intent_hooks = intent_hooks
         self.slots = {}
         self.init = init
+        self.buttons = []
         
     def __call__(self, screen, slots={}):
         if self.repeat:
@@ -20,6 +27,7 @@ class AliceResponse:
         response = {
             'text': self.text,
             'tts': self.tts,
+            'buttons': self.buttons,
             "end_session": False,
         }
 
@@ -74,3 +82,14 @@ class AliceResponse:
 
     def set_callback(self, callback):
         self.state["callback"] = callback
+    
+    def add_button(self, button:Button):
+        self.buttons.append({'title':button.title, 'url':button.url, 'hide':button.hide})
+    
+    def add_buttons(self, buttons):
+        for button in buttons:
+            self.add_button(button)
+
+    def add_txt_buttons(self, texts):
+        for text in texts:
+            self.add_button(Button(text))
