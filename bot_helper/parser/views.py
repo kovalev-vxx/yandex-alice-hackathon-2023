@@ -86,6 +86,27 @@ class SpreadsheetFilter(APIView):
         result = result.drop_duplicates()
         return Response(result.to_dict(orient='records'))
 
+def get_from_excel_local(params, sheet, top=False, filterby=None, *args, **kwargs):
+        result = get_data_from_xlsx(sheet)
+        if filterby:
+            result = result.sort_values(by=[filterby])
+        if top:
+            for param, value in params.items():
+                try:
+                    if value:
+                        top = filter_df(result, param, value)
+                        result = pd.concat([top, filter_df(result, param, f"!{value}")])
+                except KeyError:
+                    continue
+        else:
+            for param, value in params.items():
+                try:
+                    if value:
+                        result = filter_df(result, param, value)
+                except KeyError:
+                    continue
+        result = result.drop_duplicates()
+        return result.to_dict(orient='records')
 
 class LastMessage(APIView):
     def post(self, request, *args, **kwargs):

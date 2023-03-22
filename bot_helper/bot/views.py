@@ -2,16 +2,19 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 import requests
-from .models import apps_getter, campuses_getter, campus_questions_getter, faq_getter, discounts_getter, coworking_getter
+from .models import apps_getter, campuses_getter, campus_questions_getter, faq_getter, discounts_getter, coworking_getter, help_getter
 
 # from bot_helper.utils import get_data_from_xlsx
 from .structure.AliceResponse import AliceResponse, Button
 from .structure.AliceEvent import AliceEvent
 from random import choice as randomchoice
+from random import seed
 
 
-def common_intent(event, text=None, tts=None):
-    _text= "Интересно, что я еще умею?"
+def common_intent(event, text=None, tts=None, *args, **kwargs):
+    _text= """Как и всякий кошачий, очень мудрый и много чего знаю.\n\nМогу рассказать подробно о корпусах Университета ИТМО, коворкингах, приложениях и скидках. Обращайся!\n\nЗнаю очень много сокращений! Спокойно спрашивай про "Ломо" или "Кронву" – я пойму!
+
+Рассказать подробнее что я умею?"""
     _tts = "Интересно, что я еще умею?"
     if text:
         _text = f"{text}\n\n{_text}"
@@ -265,6 +268,32 @@ def numbers(event:AliceEvent, *args, **kwargs):
 def reject(event:AliceEvent, *args, **kwargs):
     return AliceResponse(event=event, text="Заглушка на отказ")
 
+def help_intent(event:AliceEvent, offset=0, init=False, *args, **kwargs):
+    seed(offset)
+
+    if init:
+        offset=0
+    
+    guide = help_getter(offset=offset)
+
+    text = "Барс всегда придет на помощь!\n\nЯ могу много чего. Расскажу по порядку:"
+    if guide:
+        phrase = build_phrase(guide[0], "guide")
+        phrase['text'] = f"""Барс всегда придет на помощь!\n\nЯ могу много чего. Расскажу по порядку:\n\n{phrase['text']}"""
+        phrase['tts'] = f"""Барс всегда придет на помощь!\n\nЯ могу много чего. Расскажу по порядку:\n\n{phrase['tts']}"""
+        response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM":"help_intent"})
+        if len(guide) == 2:
+            response.add_text(randomchoice(["Интересно, что я ещё умею?", "Рассказать, что я ещё умею?"]))
+            response.to_slots("offset", offset+1)
+        if len(guide) == 1:
+            phrase['text'] = f"""{phrase['text']}\n\nОбращайся!"""
+            phrase['tts'] = f"""{phrase['tts']}Обращайся!"""
+            return common_intent(event, **phrase)
+        return response
+
+
+    return AliceResponse(event=event, text=text)
+
 
 INTENTS = {
     'about_campuses':  about_campuses,
@@ -281,7 +310,10 @@ INTENTS = {
     'about_coworking_enum': about_coworking_enum,
     'about_campus_enum':about_campus_enum,
     'about_campus_details':about_campus_details,
-    'reject_campus_details':reject_campus_details
+    'reject_campus_details':reject_campus_details,
+    'YANDEX.HELP':help_intent,
+    'help_intent': help_intent,
+    'YANDEX.WHAT_CAN_YOU_DO' : common_intent,
 }
 
 
