@@ -97,8 +97,8 @@ def about_coworking_enum(event, campus='lomo', number=-1, offset=0, init=False, 
             response.to_slots("offset", offset+1)
             response.add_txt_buttons(['Да'])
         if len(coworkings) == 1:
-            phrase['text'] = f"""{phrase['text']}\n\nВ корпусе больше нет коворкингов."""
-            phrase['tts'] = f"""{phrase['tts']} В корпусе больше нет ков+оркингов."""
+            phrase['text'] = f"{phrase['text']}\n\nВ корпусе больше нет коворкингов."
+            phrase['tts'] = f"{phrase['tts']} В корпусе больше нет ков+оркингов."
             return common_intent(event, **phrase)
         return response
     pass
@@ -203,8 +203,8 @@ def about_app_enum(event, app="isu", offset=0, number=-1, init=False, *args, **k
             response.to_slots("offset", offset+1)
             response.add_txt_buttons(['Да'])
         if len(apps) == 1:
-            phrase['text'] = f"""{phrase['text']}\n\nПриложений больше нет."""
-            phrase['tts'] = f"""{phrase['tts']} Приложений больше нет."""
+            phrase['text'] = f"{phrase['text']}\n\nПриложений больше нет."
+            phrase['tts'] = f"{phrase['tts']} Приложений больше нет."
             return common_intent(event, **phrase)
         return response
 
@@ -239,8 +239,8 @@ def about_faq(event, object_faq='name_rector', offset=0, topic=None, init=False,
             if offset==0:
                 response.to_slots("topic", topic)
         elif len(objects_faq) == 1:
-            phrase['text'] = f"""{phrase['text']}\n\nФух, на этом у меня все..."""
-            phrase['tts'] = f"""{phrase['tts']} Фух, на этом у меня все..."""
+            phrase['text'] = f"{phrase['text']}\n\nФух, на этом у меня все..."
+            phrase['tts'] = f"{phrase['tts']} Фух, на этом у меня все..."
             return common_intent(event, **phrase)
         return response
 
@@ -271,8 +271,8 @@ def about_discounts_by_category(event, campus=None, category="food", offset=0, i
                 response.add_button(Button("Ссылка", discounts[0]["link"]))
             response.add_txt_buttons(['Да'])
         if len(discounts) == 1:
-            phrase['text'] = f"""{phrase['text']}\n\nБольше нет скидок в этой категории."""
-            phrase['tts'] = f"""{phrase['tts']} Больше нет скидок в этой категории."""
+            phrase['text'] = f"{phrase['text']}\n\nБольше нет скидок в этой категории."
+            phrase['tts'] = f"{phrase['tts']} Больше нет скидок в этой категории."
             return common_intent(event, **phrase)
         return response
     pass
@@ -296,8 +296,8 @@ def about_discounts_campus(event, campus="lomo", category="food", init=False, of
                 response.add_button(Button("Ссылка", discounts[0]["link"]))
             response.add_txt_buttons(['Да'])
         if len(discounts) == 1:
-            phrase['text'] = f"""{phrase['text']}\n\nБольше нет скидок рядом."""
-            phrase['tts'] = f"""{phrase['tts']} Больше нет скидок рядом."""
+            phrase['text'] = f"{phrase['text']}\n\nБольше нет скидок рядом."
+            phrase['tts'] = f"{phrase['tts']} Больше нет скидок рядом."
             return common_intent(event, **phrase)
         return response
     pass
@@ -331,15 +331,15 @@ def help_intent(event:AliceEvent, offset=0, init=False, *args, **kwargs):
 
     if guide:
         phrase = build_phrase(guide[0], "guide")
-        phrase['text'] = f"""{text}\n\n{phrase['text']}"""
-        phrase['tts'] = f"""{text}\n\n{phrase['tts']}"""
+        phrase['text'] = f"{text}\n\n{phrase['text']}"
+        phrase['tts'] = f"{text}\n\n{phrase['tts']}"
         response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM":"help_intent"})
         if len(guide) == 2:
             response.add_text(randomchoice(["Интересно, что я ещё умею?", "Рассказать, что я ещё умею?"]))
             response.to_slots("offset", offset+1)
         if len(guide) == 1:
-            phrase['text'] = f"""{phrase['text']}\n\nОбращайся! Повторить ещё раз, что я умею?"""
-            phrase['tts'] = f"""{phrase['tts']}Обращайся! Повторить ещё раз, что я умею?"""
+            phrase['text'] = f"{phrase['text']}\n\nОбращайся! Повторить ещё раз, что я умею?"
+            phrase['tts'] = f"{phrase['tts']}Обращайся! Повторить ещё раз, что я умею?"
             return common_intent(event, **phrase, show_text=False)
         return response
 
