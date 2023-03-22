@@ -22,7 +22,7 @@ def common_intent(event, text=None, tts=None, show_text=True, *args, **kwargs):
 
     if not text:
         _text= """Как и всякий кошачий, очень мудрый и много чего знаю.\n\nМогу рассказать подробно о корпусах Университета ИТМО, коворкингах, приложениях и скидках. Обращайся!\n\nЗнаю очень много сокращений! Спокойно спрашивай про "Ломо" или "Кронву" – я пойму! Рассказать подробнее что я умею?"""
-        _tts = "Интересно, что я еще умею?"
+        _tts = """Как и всякий кошачий, очень мудрый и много чего знаю.\n\nМогу рассказать подробно о корпусах Университета ИТМ+О, коворкингах, приложениях и скидках. Обращайся!\n\nЗнаю очень много сокращений! Спокойно спрашивай про "Л+омо" или "Кр+онву" – я пойму! Рассказать подробнее что я умею?"""
     
 
     if not show_text:
@@ -206,7 +206,7 @@ def about_apps(event, *args, **kwargs):
     Что интересует?
     """
     tts = "Я могу рассказать про май итм+о. итм+о мэп. ИС+У. и итм+о сть+юденс  Что интересует?"
-    response = AliceResponse(event=event, text=text, tts=tts, intent_hooks={"numbers":"about_app_enum", "about_app_enum":"about_app_enum"}, init=True)
+    response = AliceResponse(event=event, text=text, tts=tts, intent_hooks={"numbers":"about_app_enum"})
     response.add_txt_buttons(['my.itmo', 'itmo.map', 'ИСУ', 'itmo.students'])
     return response
     
@@ -257,7 +257,8 @@ def about_faq(event, object_faq='name_rector', offset=0, topic=None, init=False,
         print(phrase)
         response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM": "about_faq"})
         if len(objects_faq) == 2:
-            response.add_text(objects_faq[1]['bot_question'])
+            question = build_phrase(objects_faq[1], "bot_question")
+            response.add_text(**question)
             response.to_slots("offset", offset + 1)
             if offset==0:
                 response.to_slots("topic", topic)
@@ -268,48 +269,68 @@ def about_faq(event, object_faq='name_rector', offset=0, topic=None, init=False,
         return response
 
 
-def about_discounts(event, title='Планетарий 1', offset=0, category=None, init=False, *args, **kwargs):
+def about_discounts(event, *args, **kwargs):
+    text = """
+    Можешь спросить про скидки около какого-либо корпуса или по категориям:\n\n
+    1. Развлечения 🕹️
+    2. Спорт 💪 
+    3. Еда 🍔
+    4. Здоровье 🏥 
+    5. Учеба 💻\n\n
+    Что интересует? 🤔
     """
-    params:
-    event - parsed request
-    title - title name
-    offset - step of list
-    category - category of discount
-    return:
-    response
+
+    tts = """
+    Можешь спросить про скидки около какого-либо корпуса или по категориям:\n\n
+    1. Развлечения. 🕹️
+    2. Спорт. 💪
+    3. Еда. 🍔
+    4. Здоровье. 🏥 
+    5. Учеба. 💻\n\n
+    Что интересует? 🤔
     """
+    response = AliceResponse(event=event, text=text, tts=tts, intent_hooks={"numbers":"about_discounts_by_category", "about_campus_enum":"about_discounts_campus"})
+    response.add_txt_buttons(["у Ломоносова","Еда", "Спорт", "Еда", "Здоровье", "Учеба"])
+    return response
+
+def about_discounts_by_category(event, campus=None, category="food", offset=0, init=False, *args, **kwargs):
+    return AliceResponse(event, f"о скидках по категориям {category} {campus}")
+
+def about_discounts_campus(event, campus="lomo", category="food", init=False, offset=0, *args, **kwargs):
+    seed(offset)
     if init:
-        offset = 0
+        offset=0
 
-    discounts = discounts_getter(offset, title, category)
-    print(discounts[0])
+    discounts = discounts_getter(offset=offset, category=category, campus=campus)
     if discounts:
-        phrase = build_phrase(discounts[0], "description")
-        response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM": "about_discounts"})
+        phrase = build_phrase(discounts[0], 'description')
+        response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM":"about_discounts_campus"})
         if len(discounts) == 2:
-            response.add_text(discounts[offset+1]['bot_question'])
+            response.add_text(randomchoice(["Найти ещё скидки рядом с этим корпусом?", "Найти ещё скидки поблизости?"]))
             response.to_slots("offset", offset+1)
+            response.to_slots("link", discounts[0]["link"])
+            response.to_slots("prev_intent", 'about_discounts_campus')
+            response.add_button(Button("Ссылка", discounts[0]["link"]))
+            response.add_txt_buttons(['Да'])
         if len(discounts) == 1:
-            response.add_text("Что еще хочешь узнать?")
-            response.intent_hooks = {}
+            phrase['text'] = f"""{phrase['text']}\n\nБольше нет скидок рядом."""
+            phrase['tts'] = f"""{phrase['tts']} Больше нет скидок рядом."""
+            return common_intent(event, **phrase)
         return response
-    # return AliceResponse(title, 'sss')
+    pass
 
+    return AliceResponse(event, f"о скидках у места {campus}")
+
+def link(event, link, prev_intent, *args, **kwargs):
+    text = f"{link}\n\nНайти ещё скидку?"
+    tts = f"Найти ещё скидку?"
+    return AliceResponse(event, text, tts, intent_hooks={"YANDEX.CONFIRM":prev_intent})
 
 def repeat(event:AliceEvent, *args, **kwargs):
     return AliceResponse(event=event, text=event.state["text"], tts=event.state["tts"], state=event.state, repeat=True)
 
-
-def confirm(event:AliceEvent, *args, **kwargs):
-    return AliceResponse(event=event, text="Заглушка на согласие")
-
-
 def fallback(event:AliceEvent, *args, **kwargs):
     return AliceResponse(event, "Извините, непонятно")
-
-
-def numbers(event:AliceEvent, *args, **kwargs):
-    return AliceResponse(event=event, text="Заглушка на число")
 
 def reject(event:AliceEvent, *args, **kwargs):
     return common_intent(event, text="Если захочешь выйти, скажи \"Пока\" или \"Хватит\"")
@@ -347,10 +368,7 @@ INTENTS = {
     'about_campuses':  about_campuses,
     'about_apps': about_apps,
     'YANDEX.REPEAT': repeat,
-    'YANDEX.CONFIRM': confirm,
     'YANDEX.REJECT': reject,
-    'numbers': numbers,
-    'confirm': confirm,
     'about_app_enum': about_app_enum,
     'about_faq': about_faq,
     'about_discounts': about_discounts,
@@ -365,7 +383,11 @@ INTENTS = {
     'repeat': repeat,
     'hello_intent': hello_intent,
     'common_intent': common_intent,
-    'goodby_intent': goodby_intent
+    'goodby_intent': goodby_intent,
+    'about_discounts_by_category':about_discounts_by_category,
+    'about_discounts_campus': about_discounts_campus,
+    'about_discounts_by_category': about_discounts_by_category,
+    'link':link
 }
 
 
