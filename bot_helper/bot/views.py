@@ -116,7 +116,6 @@ def about_campus_enum(event, campus='lomo', number=-1, init=False, question_offs
     if (number-1) in range(len(campuses)):
         campus = campuses[number-1]
 
-    
     questions = campus_questions_getter(offset=question_offset)
     campuses = campuses_getter(offset=offset, campus=campus)
     if campuses:
@@ -136,12 +135,14 @@ def about_campus_enum(event, campus='lomo', number=-1, init=False, question_offs
             response.to_slots("offset", offset+1)
         return response
 
+
 def reject_campus_details(event, offset=0, *args, **kwargs):
     text = "Хочешь узнать про другие корпуса?"
     tts = "Хочешь узнать про другие корпус+а?"
     if offset==5:
             return common_intent(event, "Больше ничего не знаю про корпуса.")
     return AliceResponse(event=event, text=text, tts=tts, intent_hooks={"YANDEX.CONFIRM":"about_campus_enum"})
+
 
 def about_campus_details(event, campus='lomo', field='history', init=False, question_offset=0, offset=0, *args, **kwargs):
     if init:
@@ -165,9 +166,6 @@ def about_campus_details(event, campus='lomo', field='history', init=False, ques
             response.intent_hooks = {"YANDEX.CONFIRM":"about_campus_enum"}
         return response
     return AliceResponse(event=event, text='about_campus_details')
-
-
-
 
 
 def about_apps(event, *args, **kwargs):
@@ -347,7 +345,6 @@ INTENTS = {
     'about_coworking_enum': about_coworking_enum,
     'about_campus_enum':about_campus_enum,
     'about_campus_details':about_campus_details,
-    'reject_campus_details':reject_campus_details,
     'reject_campus_details':reject_campus_details,
     'YANDEX.HELP':help_intent,
     'help_intent': help_intent,
