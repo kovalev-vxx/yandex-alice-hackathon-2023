@@ -252,10 +252,14 @@ def about_discounts(event, *args, **kwargs):
     response.add_txt_buttons(["у Ломоносова","Еда", "Спорт", "Еда", "Здоровье", "Учеба"])
     return response
 
-def about_discounts_by_category(event, campus=None, category="food", offset=0, init=False, *args, **kwargs):
+def about_discounts_by_category(event, campus=None, category="food", number=-1, offset=0, init=False, *args, **kwargs):
     seed(offset)
     if init:
         offset=0
+
+    categories = ["rest", "sport", "food", "health", "edu"]
+    if (number-1) in range(len(categories)):
+        categories = categories[number-1]
 
     discounts = discounts_getter(offset=offset, category=category, campus=campus)
     if discounts:
@@ -307,7 +311,9 @@ def about_discounts_campus(event, campus="lomo", category="food", init=False, of
 def link(event, link, prev_intent, *args, **kwargs):
     text = f"{link}\n\nНайти ещё скидку?"
     tts = f"Найти ещё скидку?"
-    return AliceResponse(event, text, tts, intent_hooks={"YANDEX.CONFIRM":prev_intent})
+    response = AliceResponse(event, text, tts, intent_hooks={"YANDEX.CONFIRM":prev_intent})
+    response.add_txt_buttons(['Да'])
+    return response
 
 def repeat(event:AliceEvent, *args, **kwargs):
     return AliceResponse(event=event, text=event.state["text"], tts=event.state["tts"], state=event.state, repeat=True)
