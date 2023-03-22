@@ -259,7 +259,7 @@ def about_discounts_by_category(event, campus=None, category="food", number=-1, 
 
     categories = ["rest", "sport", "food", "health", "edu"]
     if (number-1) in range(len(categories)):
-        categories = categories[number-1]
+        category = categories[number-1]
 
     discounts = discounts_getter(offset=offset, category=category, campus=campus)
     if discounts:
