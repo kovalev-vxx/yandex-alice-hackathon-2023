@@ -97,7 +97,7 @@ def about_coworking_enum(event, campus='lomo', number=-1, offset=0, init=False, 
     if (number-1) in range(len(campuses)):
         campus = campuses[number-1]
 
-    coworkings = coworking_getter(offset=offset, campus=campus)
+    coworkings = coworking_getter(offset=offset, campus=campus, top=True)
     if coworkings:
         phrase = build_phrase(coworkings[0], 'phrase')
         response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM":"about_coworking_enum"})
@@ -294,7 +294,29 @@ def about_discounts(event, *args, **kwargs):
     return response
 
 def about_discounts_by_category(event, campus=None, category="food", offset=0, init=False, *args, **kwargs):
-    return AliceResponse(event, f"о скидках по категориям {category} {campus}")
+    seed(offset)
+    if init:
+        offset=0
+
+    discounts = discounts_getter(offset=offset, category=category, campus=campus)
+    if discounts:
+        phrase = build_phrase(discounts[0], 'phrase')
+        response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM":"about_discounts_by_category"})
+        if len(discounts) == 2:
+            response.add_text(randomchoice(["Найти еще скидки в этой категории?"]))
+            response.to_slots("offset", offset+1)
+            response.to_slots("link", discounts[0]["link"])
+            response.to_slots("prev_intent", 'about_discounts_by_category')
+            link = discounts[0]["link"]
+            if link != "-":
+                response.add_button(Button("Ссылка", discounts[0]["link"]))
+            response.add_txt_buttons(['Да'])
+        if len(discounts) == 1:
+            phrase['text'] = f"""{phrase['text']}\n\nБольше нет скидок в этой категории."""
+            phrase['tts'] = f"""{phrase['tts']} Больше нет скидок в этой категории."""
+            return common_intent(event, **phrase)
+        return response
+    pass
 
 def about_discounts_campus(event, campus="lomo", category="food", init=False, offset=0, *args, **kwargs):
     seed(offset)
@@ -303,14 +325,16 @@ def about_discounts_campus(event, campus="lomo", category="food", init=False, of
 
     discounts = discounts_getter(offset=offset, category=category, campus=campus)
     if discounts:
-        phrase = build_phrase(discounts[0], 'description')
+        phrase = build_phrase(discounts[0], 'phrase')
         response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM":"about_discounts_campus"})
         if len(discounts) == 2:
             response.add_text(randomchoice(["Найти ещё скидки рядом с этим корпусом?", "Найти ещё скидки поблизости?"]))
             response.to_slots("offset", offset+1)
             response.to_slots("link", discounts[0]["link"])
             response.to_slots("prev_intent", 'about_discounts_campus')
-            response.add_button(Button("Ссылка", discounts[0]["link"]))
+            link = discounts[0]["link"]
+            if link != "-":
+                response.add_button(Button("Ссылка", discounts[0]["link"]))
             response.add_txt_buttons(['Да'])
         if len(discounts) == 1:
             phrase['text'] = f"""{phrase['text']}\n\nБольше нет скидок рядом."""
