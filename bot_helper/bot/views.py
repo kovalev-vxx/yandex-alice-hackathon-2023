@@ -336,6 +336,7 @@ def help_intent(event:AliceEvent, offset=0, init=False, *args, **kwargs):
         response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM":"help_intent"})
         if len(guide) == 2:
             response.add_text(randomchoice(["Интересно, что я ещё умею?", "Рассказать, что я ещё умею?"]))
+            response.add_txt_buttons(['Да', 'Скидки', 'Приложения','Коворкинги','Корпуса'])
             response.to_slots("offset", offset+1)
         if len(guide) == 1:
             phrase['text'] = f"{phrase['text']}\n\nОбращайся! Повторить ещё раз, что я умею?"
