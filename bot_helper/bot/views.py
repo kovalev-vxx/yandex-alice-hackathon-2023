@@ -227,12 +227,12 @@ def about_faq(event, object_faq='name_rector', offset=0, topic=None, init=False,
         if len(objects_faq) == 2:
             response.add_text(objects_faq[1]['bot_question'])
             response.to_slots("offset", offset+1)
-            response.to_slots("topic", objects_faq[0]['topic'])
-        if len(objects_faq) == 1:
-            response.add_text("Что еще хочешь узнать?")
-            response.intent_hooks = {}
+            response.to_slots("topic", topic)
+        elif len(objects_faq) == 1:
+            phrase['text'] = f"""{phrase['text']}\n\nФух, на этом у меня все..."""
+            phrase['tts'] = f"""{phrase['tts']} Фух, на этом у меня все..."""
+            return common_intent(event, **phrase)
         return response
-    # return AliceResponse(event, "test faq")
 
 
 # Discounts

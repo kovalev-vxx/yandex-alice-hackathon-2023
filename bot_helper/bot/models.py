@@ -2,6 +2,7 @@ import requests
 
 from parser.views import get_from_excel_local
 
+
 def enum_validate(link, offset):
     array = requests.get(link).json()
     try:
@@ -10,6 +11,7 @@ def enum_validate(link, offset):
         return [array[offset], array[offset+1]]
     except IndexError:
         return []
+
 
 def enum_validate_local(res, offset):
     try:
@@ -35,7 +37,6 @@ def campus_questions_getter(offset, field=None):
     return enum_validate_local(res=res, offset=offset)
 
 
-
 def faq_getter(offset, object_faq=None, topic=None):
     res = get_from_excel_local({'object_faq':object_faq, 'topic': topic}, filterby='topic', sheet="FAQ", top=True)
     return enum_validate_local(res=res, offset=offset)
@@ -49,6 +50,7 @@ def discounts_getter(offset, title=None, category=None):
 def coworking_getter(offset, campus=None):
     res = get_from_excel_local({'campus':campus}, sheet="coworkings", top=True)
     return enum_validate_local(res=res, offset=offset)
+
 
 def help_getter(offset):
     res = get_from_excel_local({}, sheet="guide", top=True)
