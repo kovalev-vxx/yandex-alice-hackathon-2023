@@ -206,7 +206,7 @@ def about_apps(event, *args, **kwargs):
     Что интересует?
     """
     tts = "Я могу рассказать про май итм+о. итм+о мэп. ИС+У. и итм+о сть+юденс  Что интересует?"
-    response = AliceResponse(event=event, text=text, tts=tts, intent_hooks={"numbers":"about_app_enum"}, init=True)
+    response = AliceResponse(event=event, text=text, tts=tts, intent_hooks={"numbers":"about_app_enum", "about_app_enum":"about_app_enum"}, init=True)
     response.add_txt_buttons(['my.itmo', 'itmo.map', 'ИСУ', 'itmo.students'])
     return response
     
@@ -245,11 +245,12 @@ def about_faq(event, object_faq='name_rector', offset=0, topic=None, init=False,
     """
     if init:
         offset = 0
+        topic = None
 
     if topic is None:
         objects_faq = faq_getter(offset, object_faq)
         topic = objects_faq[0]['topic']
-
+    print(object_faq, topic)
     objects_faq = faq_getter(offset, object_faq, topic)
     if objects_faq:
         phrase = build_phrase(objects_faq[0], "answer")
