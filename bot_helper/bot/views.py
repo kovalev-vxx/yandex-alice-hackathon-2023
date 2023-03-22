@@ -5,11 +5,19 @@ import requests
 from .models import apps_getter, campuses_getter, campus_questions_getter, faq_getter, discounts_getter, coworking_getter
 
 # from bot_helper.utils import get_data_from_xlsx
-from .structure.AliceResponse import AliceResponse
+from .structure.AliceResponse import AliceResponse, Button
 from .structure.AliceEvent import AliceEvent
 from random import choice as randomchoice
 
 
+def common_intent(event, text=None, tts=None):
+    _text= "Интересно, что я еще умею?"
+    if text:
+        _text = f"{text}\n\n{_text}"
+
+    init_response = AliceResponse(event, text=_text, intent_hooks={})
+    init_response.add_txt_buttons(['Скидки', 'Приложения','Коворкинги','Корпуса'])
+    return init_response
 
 
 def build_phrase(_object, field):
@@ -82,6 +90,59 @@ def about_campuses(event, *args, **kwargs):
     return response
 
 
+def about_campus_enum(event, campus='lomo', number=-1, init=False, question_offset=0, offset=0, *args, **kwargs):
+    if init:
+        offset=0
+        question_offset=0
+
+    campuses = ['lomo', 'kronva', 'birga', 'chaika']
+    if (number-1) in range(len(campuses)):
+        campus = campuses[number-1]
+
+    
+    questions = campus_questions_getter(offset=question_offset)
+    campuses = campuses_getter(offset=offset, campus=campus)
+    if campuses:
+        phrase = build_phrase(campuses[0], 'phrase')
+        response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM":"about_campus_details", "YANDEX.REJECT":"reject_campus_details"})
+        if len(campuses) == 2:
+            question_phrase = build_phrase(questions[0], 'question')
+            response.add_text(**question_phrase)
+            response.to_slots("campus", campus)
+            response.to_slots("field", questions[0]['field'])
+            response.to_slots("offset", offset+1)
+        if len(campuses) == 1:
+            return common_intent(event, "Больше ничего не знаю про корпуса.")
+        return response
+
+def reject_campus_details(event, *args, **kwargs):
+    text = "Хочешь узнать про другие корпуса?"
+    tts = "Хочешь узнать про другие корпус+а?"
+    return AliceResponse(event=event, text=text, tts=tts, intent_hooks={"YANDEX.CONFIRM":"about_campus_enum"})
+
+def about_campus_details(event, campus='lomo', field='history', init=False, question_offset=0, offset=0, *args, **kwargs):
+    if init:
+        question_offset=0
+    questions = campus_questions_getter(offset=question_offset, field=f"{field}")
+    campus = campuses_getter(offset=0, campus=campus)[0]
+    
+    if questions:
+        phrase = build_phrase(campus, questions[0]['field'])
+        response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM":"about_campus_details", "YANDEX.REJECT":"reject_campus_details"})
+        if len(questions) == 2:
+            question_phrase = build_phrase(questions[1], 'question')
+            response.add_text(**question_phrase)
+            response.to_slots("question_offset", question_offset+1)
+        if len(questions) == 1:
+            response.add_text("Это все, что я знаю про этот корпус, рассказать про другой?")
+            response.intent_hooks = {"YANDEX.CONFIRM":"about_campus_enum"}
+        return response
+    return AliceResponse(event=event, text='about_campus_details')
+
+
+
+
+
 def about_apps(event, *args, **kwargs):
     text= """
     Я могу рассказать про:\n\n
@@ -111,8 +172,7 @@ def about_app_enum(event, app="isu", offset=0, number=-1, init=False, *args, **k
             response.add_text("Интересно узнать про ещё одно приложение?")
             response.to_slots("offset", offset+1)
         if len(apps) == 1:
-            response.add_text("Приложений больше нет")
-            response.intent_hooks = {}
+            return common_intent(event, "Приложений больше нет.")
         return response
 
 
@@ -185,19 +245,26 @@ def fallback(event:AliceEvent, *args, **kwargs):
 def numbers(event:AliceEvent, *args, **kwargs):
     return AliceResponse(event=event, text="Заглушка на число")
 
+def reject(event:AliceEvent, *args, **kwargs):
+    return AliceResponse(event=event, text="Заглушка на отказ")
+
 
 INTENTS = {
     'about_campuses':  about_campuses,
     'about_apps': about_apps,
     'YANDEX.REPEAT': repeat,
     'YANDEX.CONFIRM': confirm,
+    'YANDEX.REJECT': reject,
     'numbers': numbers,
     'confirm': confirm,
     'about_app_enum': about_app_enum,
     'about_faq': about_faq,
     'about_discounts': about_discounts,
     'about_coworkings': about_coworkings,
-    'about_coworking_enum': about_coworking_enum
+    'about_coworking_enum': about_coworking_enum,
+    'about_campus_enum':about_campus_enum,
+    'about_campus_details':about_campus_details,
+    'reject_campus_details':reject_campus_details
 }
 
 
