@@ -2,24 +2,36 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 import requests
-from .models import apps_getter, campuses_getter, campus_questions_getter, faq_getter, discounts_getter, coworking_getter
+from .models import apps_getter, campuses_getter, campus_questions_getter, faq_getter, discounts_getter, coworking_getter, help_getter
 
 # from bot_helper.utils import get_data_from_xlsx
 from .structure.AliceResponse import AliceResponse, Button
 from .structure.AliceEvent import AliceEvent
 from random import choice as randomchoice
+from random import seed
 
 
-def common_intent(event, text=None, tts=None):
-    _text= "Интересно, что я еще умею?"
-    _tts = "Интересно, что я еще умею?"
+def common_intent(event, text=None, tts=None, show_text=True, *args, **kwargs):
+
+    _text = "Всегда рад помочь! Рассказать подробнее, что я умею?"
+    _tts = "Всегда рад помочь! Рассказать подробнее, что я умею?"
+
+    if not text:
+        _text= """Как и всякий кошачий, очень мудрый и много чего знаю.\n\nМогу рассказать подробно о корпусах Университета ИТМО, коворкингах, приложениях и скидках. Обращайся!\n\nЗнаю очень много сокращений! Спокойно спрашивай про "Ломо" или "Кронву" – я пойму! Рассказать подробнее что я умею?"""
+        _tts = "Интересно, что я еще умею?"
+
+    if not show_text:
+        _text=""
+        _tts=""
+
     if text:
         _text = f"{text}\n\n{_text}"
     
     if tts:
         _tts = f"{tts}\n\n{_tts}"
 
-    init_response = AliceResponse(event, text=_text, tts=tts, intent_hooks={})
+    init_response = AliceResponse(event, text=_text, tts=tts, intent_hooks={'YANDEX.CONFIRM':'help_intent'})
+    init_response.to_slots("offset", 0)
     init_response.add_txt_buttons(['Скидки', 'Приложения','Коворкинги','Корпуса'])
     return init_response
 
@@ -73,8 +85,9 @@ def about_coworking_enum(event, campus='lomo', number=-1, offset=0, init=False, 
             response.add_text(randomchoice(["Найти ещё коворкинг здесь?", "Рассказать о еще одном коворкинге здесь?", "Рассказать о ещё одном?"]))
             response.to_slots("offset", offset+1)
         if len(coworkings) == 1:
-            response.add_text("В корпусе больше нет коворкингов.")
-            response.intent_hooks = {}
+            phrase['text'] = f"""{phrase['text']}\n\nВ корпусе больше нет коворкингов."""
+            phrase['tts'] = f"""{phrase['tts']} В корпусе больше нет ков+оркингов."""
+            return common_intent(event, **phrase)
         return response
     pass
 
@@ -116,12 +129,18 @@ def about_campus_enum(event, campus='lomo', number=-1, init=False, question_offs
             response.to_slots("field", questions[0]['field'])
             response.to_slots("offset", offset+1)
         if len(campuses) == 1:
-            return common_intent(event, "Больше ничего не знаю про корпуса.")
+            question_phrase = build_phrase(questions[0], 'question')
+            response.add_text(**question_phrase)
+            response.to_slots("campus", campus)
+            response.to_slots("field", questions[0]['field'])
+            response.to_slots("offset", offset+1)
         return response
 
-def reject_campus_details(event, *args, **kwargs):
+def reject_campus_details(event, offset=0, *args, **kwargs):
     text = "Хочешь узнать про другие корпуса?"
     tts = "Хочешь узнать про другие корпус+а?"
+    if offset==5:
+            return common_intent(event, "Больше ничего не знаю про корпуса.")
     return AliceResponse(event=event, text=text, tts=tts, intent_hooks={"YANDEX.CONFIRM":"about_campus_enum"})
 
 def about_campus_details(event, campus='lomo', field='history', init=False, question_offset=0, offset=0, *args, **kwargs):
@@ -204,8 +223,6 @@ def about_faq(event, object_faq='name_rector', offset=0, topic=None, init=False,
         topic = objects_faq[0]['topic']
 
     objects_faq = faq_getter(offset, object_faq, topic)
-    # print(topic)
-    # print(objects_faq)
     if objects_faq:
         phrase = build_phrase(objects_faq[0], "answer")
         response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM": "about_faq"})
@@ -254,19 +271,19 @@ def about_discounts(event, title='Планетарий 1', offset=0, category=No
     if init:
         offset = 0
 
-    # discounts = discounts_getter(offset, title, category)
-    print(category)
-    # if discounts:
-    #     phrase = build_phrase(discounts[0], "description")
-    #     response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM": "about_discounts"})
-    #     if len(discounts) == 2:
-    #         response.add_text(discounts[offset+1]['bot_question'])
-    #         response.to_slots("offset", offset+1)
-    #     if len(discounts) == 1:
-    #         response.add_text("Что еще хочешь узнать?")
-    #         response.intent_hooks = {}
-    #     return response
-    return AliceResponse(event, 'test dis')
+    discounts = discounts_getter(offset, title, category)
+    print(discounts[0])
+    if discounts:
+        phrase = build_phrase(discounts[0], "description")
+        response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM": "about_discounts"})
+        if len(discounts) == 2:
+            response.add_text(discounts[offset+1]['bot_question'])
+            response.to_slots("offset", offset+1)
+        if len(discounts) == 1:
+            response.add_text("Что еще хочешь узнать?")
+            response.intent_hooks = {}
+        return response
+    # return AliceResponse(title, 'sss')
 
 
 def repeat(event:AliceEvent, *args, **kwargs):
@@ -287,6 +304,34 @@ def numbers(event:AliceEvent, *args, **kwargs):
 def reject(event:AliceEvent, *args, **kwargs):
     return AliceResponse(event=event, text="Заглушка на отказ")
 
+def help_intent(event:AliceEvent, offset=0, init=False, *args, **kwargs):
+    seed(offset)
+    text = ""
+
+    if init:
+        offset=0
+        text = "Барс всегда придет на помощь!\n\nЯ могу много чего. Расскажу по порядку:"
+
+    guide = help_getter(offset=offset)
+
+
+    if guide:
+        phrase = build_phrase(guide[0], "guide")
+        phrase['text'] = f"""{text}\n\n{phrase['text']}"""
+        phrase['tts'] = f"""{text}\n\n{phrase['tts']}"""
+        response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM":"help_intent"})
+        if len(guide) == 2:
+            response.add_text(randomchoice(["Интересно, что я ещё умею?", "Рассказать, что я ещё умею?"]))
+            response.to_slots("offset", offset+1)
+        if len(guide) == 1:
+            phrase['text'] = f"""{phrase['text']}\n\nОбращайся! Повторить ещё раз, что я умею?"""
+            phrase['tts'] = f"""{phrase['tts']}Обращайся! Повторить ещё раз, что я умею?"""
+            return common_intent(event, **phrase, show_text=False)
+        return response
+
+
+    return AliceResponse(event=event, text=text)
+
 
 INTENTS = {
     'about_campuses':  about_campuses,
@@ -303,6 +348,10 @@ INTENTS = {
     'about_campus_enum':about_campus_enum,
     'about_campus_details':about_campus_details,
     'reject_campus_details':reject_campus_details,
+    'reject_campus_details':reject_campus_details,
+    'YANDEX.HELP':help_intent,
+    'help_intent': help_intent,
+    'YANDEX.WHAT_CAN_YOU_DO' : common_intent,
     'about_discounts_start': about_discounts_start,
     'about_discounts': about_discounts,
 }
