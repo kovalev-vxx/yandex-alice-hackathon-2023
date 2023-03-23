@@ -149,6 +149,7 @@ def reject_campus_details(event, offset=0, *args, **kwargs):
             return common_intent(event, "Больше ничего не знаю про корпуса.")
     response = AliceResponse(event=event, text=text, tts=tts, intent_hooks={"YANDEX.CONFIRM":"about_campus_enum"})
     response.add_txt_buttons(['Да'])
+    response.to_slots("question_offset", 0)
     return response
 
 def about_campus_details(event, campus='lomo', field='history', init=False, question_offset=0, offset=0, *args, **kwargs):
