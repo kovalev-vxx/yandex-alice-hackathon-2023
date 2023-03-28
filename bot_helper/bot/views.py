@@ -88,7 +88,7 @@ def about_coworking_enum(event, campus='lomo', number=-1, offset=0, init=False, 
     if (number-1) in range(len(campuses)):
         campus = campuses[number-1]
 
-    coworkings = coworking_getter(offset=offset, campus=campus, top=True)
+    coworkings = coworking_getter(offset=offset, campus=campus, top=False)
     if coworkings:
         phrase = build_phrase(coworkings[0], 'phrase')
         response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM":"about_coworking_enum"})
@@ -132,32 +132,40 @@ def about_campus_enum(event, campus='lomo', number=-1, init=False, question_offs
             response.add_text(**question_phrase)
             response.to_slots("campus", campus)
             response.to_slots("field", questions[0]['field'])
-            response.to_slots("offset", offset+1)
             response.add_txt_buttons(['Да'])
         if len(campuses) == 1:
             question_phrase = build_phrase(questions[0], 'question')
             response.add_text(**question_phrase)
             response.to_slots("campus", campus)
             response.to_slots("field", questions[0]['field'])
-            response.to_slots("offset", offset+1)
         return response
 
 def reject_campus_details(event, offset=0, *args, **kwargs):
     text = "Хочешь узнать про другие корпуса?"
     tts = "Хочешь узнать про другие корпус+а?"
-    if offset==5:
+    if offset==4:
             return common_intent(event, "Больше ничего не знаю про корпуса.")
     response = AliceResponse(event=event, text=text, tts=tts, intent_hooks={"YANDEX.CONFIRM":"about_campus_enum"})
     response.add_txt_buttons(['Да'])
     response.to_slots("question_offset", 0)
+    response.to_slots("offset", offset+1)
     return response
 
-def about_campus_details(event, campus='lomo', field='history', init=False, question_offset=0, offset=0, *args, **kwargs):
+"""
+init_campus = campus
+current_campus
+"""
+
+def about_campus_details(event, campus='lomo', current_campus=None, field='history', init=False, question_offset=0, offset=0, *args, **kwargs):
     if init:
         question_offset=0
         offset=0
+
+
     questions = campus_questions_getter(offset=question_offset, field=f"{field}")
-    campus = campuses_getter(offset=0, campus=campus)[0]
+    init_campus = campus
+    init_field = field
+    campus = campuses_getter(offset=offset, campus=campus)[0]
     
     if questions:
         phrase = build_phrase(campus, questions[0]['field'])
@@ -168,11 +176,16 @@ def about_campus_details(event, campus='lomo', field='history', init=False, ques
             response.add_text(**question_phrase)
             response.to_slots("question_offset", question_offset+1)
             if offset == 0:
-                response.to_slots("offset", 1)
-                response.to_slots("campus", campus)
+                response.to_slots("field", init_field)
+                response.to_slots("campus", init_campus)
         if len(questions) == 1:
+            if offset==4:
+                return common_intent(event, "Больше ничего не знаю про корпуса.")
             response.add_text("Это все, что я знаю про этот корпус, рассказать про другой?")
+            response.to_slots("question_offset", 0)
+            response.to_slots("offset", offset+1)
             response.intent_hooks = {"YANDEX.CONFIRM":"about_campus_enum"}
+
         return response
     return AliceResponse(event=event, text='about_campus_details')
 
@@ -202,6 +215,7 @@ def about_app_enum(event, app="isu", offset=0, number=-1, init=False, *args, **k
         if len(apps) == 2:
             response.add_text("Интересно узнать про ещё одно приложение?")
             response.to_slots("offset", offset+1)
+            response.to_slots("app", app)
             response.add_txt_buttons(['Да'])
         if len(apps) == 1:
             phrase['text'] = f"{phrase['text']}\n\nПриложений больше нет."
@@ -262,7 +276,7 @@ def about_discounts_by_category(event, campus=None, category="food", number=-1, 
     if (number-1) in range(len(categories)):
         category = categories[number-1]
 
-    discounts = discounts_getter(offset=offset, category=category, campus=campus)
+    discounts = discounts_getter(offset=offset, category=category, campus=campus, top=False)
     if discounts:
         phrase = build_phrase(discounts[0], 'phrase')
         response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM":"about_discounts_by_category"})
@@ -270,8 +284,11 @@ def about_discounts_by_category(event, campus=None, category="food", number=-1, 
             response.add_text(randomchoice(["Найти еще скидки в этой категории?"]))
             response.to_slots("offset", offset+1)
             response.to_slots("link", discounts[0]["link"])
+            response.to_slots("campus", campus)
+            response.to_slots("category", category)
             response.to_slots("prev_intent", 'about_discounts_by_category')
             link = discounts[0]["link"]
+            
             if link != "-":
                 response.add_button(Button("Ссылка", discounts[0]["link"]))
             response.add_txt_buttons(['Да'])
@@ -287,7 +304,7 @@ def about_discounts_campus(event, campus="lomo", category="food", init=False, of
     if init:
         offset=0
 
-    discounts = discounts_getter(offset=offset, category=category, campus=campus)
+    discounts = discounts_getter(offset=offset, category=category, campus=campus, top=False)
     if discounts:
         phrase = build_phrase(discounts[0], 'phrase')
         response = AliceResponse(event=event, **phrase, intent_hooks={"YANDEX.CONFIRM":"about_discounts_campus"})
@@ -296,6 +313,8 @@ def about_discounts_campus(event, campus="lomo", category="food", init=False, of
             response.to_slots("offset", offset+1)
             response.to_slots("link", discounts[0]["link"])
             response.to_slots("prev_intent", 'about_discounts_campus')
+            response.to_slots("campus", campus)
+            response.to_slots("category", category)
             link = discounts[0]["link"]
             if link != "-":
                 response.add_button(Button("Ссылка", discounts[0]["link"]))
@@ -323,7 +342,7 @@ def fallback(event:AliceEvent, *args, **kwargs):
     return AliceResponse(event, "Извините, непонятно")
 
 def reject(event:AliceEvent, *args, **kwargs):
-    return common_intent(event, text="Если захочешь выйти, скажи \"Пока\" или \"Хватит\"")
+    return common_intent(event, text="Если захочешь выйти, скажи \"Пока\" или \"Хватит\"", tts="Если захочешь выйти, скажи \"Пока\" или \"Хватит\"")
 
 def help_intent(event:AliceEvent, offset=0, init=False, *args, **kwargs):
     seed(offset)
@@ -408,8 +427,7 @@ class BotHandler(APIView):
                     except KeyError as e:
                         print(e)
                 print("ОБЩИЙ ИНТЕНТ")
-                event.slots = {}
-                return Response(INTENTS[intent](event, init=True, **slots)(screen=intent, slots=slots))
+                return Response(INTENTS[intent](event, init=True, **slots)(screen=intent, slots={}))
             except KeyError as e:
                 return Response(fallback(event=event)("fallback"))
         else:

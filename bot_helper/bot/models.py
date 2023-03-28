@@ -40,8 +40,8 @@ def faq_getter(offset, object_faq=None, topic=None):
     res = get_from_excel_local({'object_faq':object_faq, 'topic': topic}, filterby='topic', sheet="FAQ", top=True)
     return enum_validate_local(res=res, offset=offset)
 
-def discounts_getter(offset, category=None, campus=None):
-    res = get_from_excel_local({'category':category, 'campus': campus}, sheet="discounts", top=True)
+def discounts_getter(offset, category=None, campus=None, top=True):
+    res = get_from_excel_local({'category':category, 'campus': campus}, sheet="discounts", top=top)
     return enum_validate_local(res=res, offset=offset)
 
     
