@@ -408,6 +408,7 @@ class BotHandler(APIView):
                     except KeyError as e:
                         print(e)
                 print("ОБЩИЙ ИНТЕНТ")
+                event.slots = {}
                 return Response(INTENTS[intent](event, init=True, **slots)(screen=intent, slots=slots))
             except KeyError as e:
                 return Response(fallback(event=event)("fallback"))
